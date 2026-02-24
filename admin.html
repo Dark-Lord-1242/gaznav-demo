@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Panel - GazNav</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="theme-dark">
+  <div class="admin-page">
+    <header class="admin-header">
+      <div class="admin-header__top">
+        <a href="index.html" class="admin-back" data-i18n="adminBack">← Orqaga</a>
+        <button id="adminLangToggle" class="admin__btn admin__btn--small" type="button">UZ/RU</button>
+      </div>
+      <h1 class="admin-title" data-i18n="adminTitle">Admin Panel</h1>
+    </header>
+
+    <main class="admin-main">
+      <!-- Viloyat va Tuman qo'shish -->
+      <section class="admin-section">
+        <h2 class="admin-section-title" data-i18n="adminRegionsTitle">Viloyat va Tumanlar</h2>
+        <div class="admin-form">
+          <label class="admin__label">
+            <span data-i18n="adminRegion">Viloyat</span>
+            <input id="adminCityName" class="admin__input" type="text" placeholder="Toshkent viloyati" />
+          </label>
+          <label class="admin__label">
+            <span data-i18n="adminDistrict">Tuman</span>
+            <input id="adminDistrictName" class="admin__input" type="text" placeholder="Yunusobod" />
+          </label>
+          <button id="adminAddLocation" class="admin__btn admin__btn--primary" type="button" data-i18n="adminAdd">Qo'shish</button>
+        </div>
+        <div id="locationsList" class="admin-list"></div>
+      </section>
+
+      <!-- Zapravka qo'shish/Tahrirlash -->
+      <section class="admin-section">
+        <h2 class="admin-section-title" data-i18n="adminStationsTitle">Zapravkalar</h2>
+        <div class="admin-form">
+          <label class="admin__label">
+            <span data-i18n="adminSelectStation">Zapravkani tanlang</span>
+            <select id="adminStationSelect" class="admin__select"></select>
+          </label>
+
+          <label class="admin__label">
+            <span data-i18n="adminName">Nomi</span>
+            <input id="adminName" class="admin__input" type="text" />
+          </label>
+
+          <div class="admin__row">
+            <label class="admin__label admin__label--half">
+              <span data-i18n="adminRegion">Viloyat</span>
+              <select id="adminCity" class="admin__select"></select>
+            </label>
+            <label class="admin__label admin__label--half">
+              <span data-i18n="adminDistrict">Tuman</span>
+              <select id="adminDistrict" class="admin__select"></select>
+            </label>
+          </div>
+
+          <label class="admin__label">
+            <span data-i18n="adminFuels">Yonilg'i turlari (vergul bilan)</span>
+            <input id="adminFuels" class="admin__input" type="text" placeholder="Metan,Benzin" />
+          </label>
+
+          <div class="admin__row">
+            <label class="admin__label admin__label--half">
+              <span data-i18n="adminOpenTime">Ochilish vaqti</span>
+              <input id="adminOpenTime" class="admin__input" type="text" placeholder="24/7 yoki 08:00–23:00" />
+            </label>
+            <label class="admin__label admin__label--half">
+              <span data-i18n="adminStatus">Status</span>
+              <select id="adminStatus" class="admin__select">
+                <option value="open" data-i18n="statusOpen">Ochilgan</option>
+                <option value="closed" data-i18n="statusClosed">Yopiq</option>
+              </select>
+            </label>
+          </div>
+
+          <!-- Lokatsiya -->
+          <div class="admin__row">
+            <label class="admin__label admin__label--half">
+              <span>Latitude</span>
+              <input id="adminLat" class="admin__input" type="number" step="0.000001" placeholder="41.3275" />
+            </label>
+            <label class="admin__label admin__label--half">
+              <span>Longitude</span>
+              <input id="adminLng" class="admin__input" type="number" step="0.000001" placeholder="69.2817" />
+            </label>
+          </div>
+
+          <button id="adminSave" class="admin__btn admin__btn--primary" type="button" data-i18n="adminSave">Saqlash</button>
+          <button id="adminAddNew" class="admin__btn" type="button" data-i18n="adminAddNew">Yangi zapravka qo'shish</button>
+          <button id="adminDelete" class="admin__btn admin__btn--danger" type="button" data-i18n="adminDelete">O'chirish</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
