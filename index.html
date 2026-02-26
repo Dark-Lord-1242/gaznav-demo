@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <title>GazNav</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://api-maps.yandex.ru/2.1/?apikey=b0288c55-f3df-4e3f-b9c7-b5de58c0d2e7&lang=ru_RU" type="text/javascript"></script>
+</head>
+<body class="theme-dark">
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- ZAPRAVKA DETAIL MODAL -->
+  <div class="modal" id="stationModal">
+    <div class="modal__backdrop" id="modalBackdrop"></div>
+    <div class="modal__content">
+      <button class="modal__close" id="modalClose">✕</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <div class="navbar__glow"></div>
+    <div class="navbar__inner">
+      <!-- Brand -->
+      <div class="brand">
+        <div class="brand-logo">
+          <span class="brand-logo__inner">⛽</span>
+          <div class="brand-logo__ring"></div>
+        </div>
+        <div class="brand-text">
+          <div class="brand-text-main">Gaz<span>Nav</span></div>
+          <div class="brand-sub" data-i18n="subtitle">Taxi style navigator</div>
+        </div>
+      </div>
+
+      <!-- Search - glassmorphism -->
+      <div class="top-search" id="topSearchWrap">
+        <div class="top-search__icon-wrap">
+          <svg class="top-search__svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </div>
+        <input type="text" id="searchInput" class="top-search__input"
+          data-i18n-placeholder="searchPlaceholder"
+          placeholder="Zapravka yoki manzil qidiring" />
+        <kbd class="top-search__kbd">/</kbd>
+      </div>
+
+      <!-- O'ng tomon: Region + controls -->
+      <div class="top-right region-selector-wrap">
+        <!-- Region selector -->
+        <div class="region-dropdown" id="regionDropdown">
+          <button class="nav-region-btn" id="regionButton" type="button">
+            <div class="nav-region-btn__pin">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div class="nav-region-btn__text">
+              <div class="nav-region-btn__label" data-i18n="regionLabel">Viloyat</div>
+              <div class="nav-region-btn__value" id="regionValue">Toshkent viloyati</div>
+            </div>
+            <svg class="nav-region-btn__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="region-dropdown__panel" id="regionPanel">
+            <div class="region-dropdown__header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span data-i18n="regionLabel">Viloyat tanlang</span>
+            </div>
+            <div class="region-dropdown__section">
+              <label data-i18n="adminRegion">Viloyat</label>
+              <select id="regionSelect" class="admin__select"></select>
+            </div>
+            <div class="region-dropdown__section">
+              <label data-i18n="adminDistrict">Tuman</label>
+              <select id="districtSelect" class="admin__select"></select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div class="nav-divider"></div>
+
+        <!-- Control buttons -->
+        <div class="nav-controls">
+          <button class="nav-ctrl-btn" id="langToggle" type="button" title="Til">
+            <span class="nav-ctrl-btn__label" id="langLabel">UZ</span>
+          </button>
+          <button class="nav-ctrl-btn nav-ctrl-btn--theme" id="themeToggle" type="button" title="Mavzu">
+            <span id="themeIcon">☀</span>
+          </button>
+          <button class="nav-ctrl-btn nav-ctrl-btn--notify" id="notifyBtn" type="button" title="Bildirishnoma">
+            <span>🔔</span>
+            <span class="nav-ctrl-btn__dot" id="notifyDot"></span>
+          </button>
+          <button class="nav-ctrl-btn nav-ctrl-btn--profile" id="cabinetToggle" type="button" title="Kabinet">
+            <div class="nav-profile-avatar">
+              <span>👤</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN: ikki ustun (xarita chap, kartalar o'ng) -->
+  <main class="page">
+    <section class="headline-section">
+      <div class="map-cards-layout">
+
+        <!-- ===== CHAP: TO'LIQ XARITA ===== -->
+        <div class="map-side">
+          <div id="mapContainer" class="map-container">
+            <div id="mainMap"></div>
+          </div>
+          <!-- Zoom tugmalari xarita ichida -->
+          <div class="map-zoom-controls">
+            <button class="map-zoom-btn" id="mapZoomIn" title="Yaqinlashtirish">＋</button>
+            <div class="map-zoom-level" id="mapZoomLevel">12</div>
+            <button class="map-zoom-btn" id="mapZoomOut" title="Uzoqlashtirish">－</button>
+          </div>
+        </div>
+
+        <!-- ===== O'NG: TUGMALAR + KARTALAR ===== -->
+        <div class="cards-side">
+          <!-- Sarlavha -->
+          <div class="cards-side__header">
+            <h1 class="headline-title" data-i18n="headline">Qayerga boramiz?</h1>
+            <p class="headline-sub" data-i18n="headlineSub">Eng yaqin zapravkalar ro'yxati</p>
+          </div>
+
+          <!-- Real-time masofa paneli -->
+          <div class="distance-panel" id="distancePanel">
+            <div class="distance-panel__icon">📡</div>
+            <div class="distance-panel__info">
+              <div class="distance-panel__label" id="distancePanelLabel">Eng yaqin</div>
+              <div class="distance-panel__value" id="distancePanelName">aniqlanmoqda...</div>
+            </div>
+            <div class="distance-panel__badge" id="distancePanelValue">–</div>
+          </div>
+
+          <!-- Top zapravka kartalar -->
+          <div class="stations-row" id="topCards"></div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- PASTKI PANEL (bottom sheet) -->
+  <section class="order-panel" id="orderPanel">
+    <div class="order-panel__drag" id="panelDrag"></div>
+    <header class="order-panel__header">
+      <div>
+        <div class="order-panel__title" data-i18n="panelTitle">Zapravkani tanlang</div>
+        <div class="order-panel__subtitle" id="userLocationLabel">Joylashuv aniqlanmoqda...</div>
+      </div>
+      <div class="order-panel__header-actions">
+        <button class="order-panel__hide-btn" id="panelHide" type="button">✕</button>
+        <button class="order-panel__collapse-btn" id="panelToggle" type="button">▾</button>
+      </div>
+    </header>
+
+    <!-- FILTRLAR -->
+    <div class="panel-filters" id="panelFilters">
+      <div class="panel-filters__scroll">
+        <button class="panel-filter-chip panel-filter-chip--all panel-filter-chip--active" id="filterAll" type="button">
+          <span class="pfc-icon">⚡</span><span class="pfc-label" data-i18n="filterAll">Barchasi</span>
+        </button>
+        <button class="panel-filter-chip" data-filter-fuel="Metan" type="button">
+          <span class="pfc-icon">🔵</span><span class="pfc-label">Metan</span>
+        </button>
+        <button class="panel-filter-chip" data-filter-fuel="Benzin" type="button">
+          <span class="pfc-icon">🔴</span><span class="pfc-label">Benzin</span>
+        </button>
+        <button class="panel-filter-chip" data-filter-fuel="Dizel" type="button">
+          <span class="pfc-icon">🟡</span><span class="pfc-label">Dizel</span>
+        </button>
+        <div class="pfc-divider"></div>
+        <button class="panel-filter-chip" data-filter-tag="24/7" type="button">
+          <span class="pfc-icon">🕐</span><span class="pfc-label">24/7</span>
+        </button>
+        <button class="panel-filter-chip" data-filter-tag="WC" type="button">
+          <span class="pfc-icon">🚻</span><span class="pfc-label">WC</span>
+        </button>
+        <button class="panel-filter-chip" data-filter-tag="Kafe" type="button">
+          <span class="pfc-icon">☕</span><span class="pfc-label">Kafe</span>
+        </button>
+        <button class="panel-filter-chip panel-filter-chip--open" data-filter-status="open" type="button">
+          <span class="pfc-icon">✅</span><span class="pfc-label" data-i18n="statusOpen">Ochiq</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="order-panel__badge-row">
+      <span class="badge badge--accent" id="nearestLabel" data-i18n="nearestFinding">Eng yaqin zapravka topilmoqda…</span>
+      <span class="badge" data-i18n="badgeHint">Filtr va qidiruv orqali tanlang</span>
+    </div>
+
+    <div class="order-panel__list" id="stationList"></div>
+  </section>
+
+  <!-- KABINET -->
+  <aside class="cabinet" id="cabinetPanel">
+    <div class="cabinet__backdrop" id="cabinetBackdrop"></div>
+    <div class="cabinet__content">
+      <!-- Profil header -->
+      <header class="cabinet__header">
+        <div class="cab-profile-row">
+          <div class="cab-avatar" id="cabAvatar">
+            <span class="cab-avatar__icon">👤</span>
+            <span class="cab-avatar__status"></span>
+          </div>
+          <div class="cab-profile-info">
+            <div class="cab-profile-name" id="cabProfileName">Foydalanuvchi</div>
+            <div class="cab-profile-sub" id="cabProfileSub">
+              <span class="cab-online-dot"></span>
+              <span data-i18n="profileOnline">Onlayn</span>
+            </div>
+          </div>
+        </div>
+        <button class="cabinet__close" id="cabinetClose" type="button">✕</button>
+      </header>
+
+      <!-- Profil tahrirlash -->
+      <section class="cabinet__section cab-profile-edit" id="cabProfileSection">
+        <div class="cab-profile-card">
+          <div class="cab-profile-card__row">
+            <span class="cab-profile-card__label" data-i18n="profileNameLabel">Ism</span>
+            <input type="text" class="cab-profile-card__input" id="cabNameInput" placeholder="Ismingizni kiriting" data-i18n-placeholder="profileNamePlaceholder" />
+          </div>
+          <div class="cab-profile-card__row">
+            <span class="cab-profile-card__label" data-i18n="profilePhoneLabel">Telefon</span>
+            <input type="tel" class="cab-profile-card__input" id="cabPhoneInput" placeholder="+998 XX XXX XX XX" />
+          </div>
+          <button class="cab-profile-card__save" id="cabProfileSave" type="button" data-i18n="profileSave">Saqlash</button>
+        </div>
+      </section>
+
+      <!-- Statistika -->
+      <section class="cabinet__section">
+        <div class="cab-stats-row">
+          <div class="cab-stat-card">
+            <div class="cab-stat-card__value" id="cabStatTotal">0</div>
+            <div class="cab-stat-card__label" data-i18n="statTotal">Jami zapravka</div>
+          </div>
+          <div class="cab-stat-card cab-stat-card--accent">
+            <div class="cab-stat-card__value" id="cabStatFav">0</div>
+            <div class="cab-stat-card__label" data-i18n="statFavCount">Sevimlilar</div>
+          </div>
+          <div class="cab-stat-card cab-stat-card--blue">
+            <div class="cab-stat-card__value" id="cabStatCars">0</div>
+            <div class="cab-stat-card__label" data-i18n="statCarsCount">Avtolar</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Avtomobillar -->
+      <section class="cabinet__section">
+        <div class="cabinet__section-header">
+          <div class="cabinet__section-title" data-i18n="carsTitle">Avtomobillarim</div>
+          <button class="cab-section-action" id="addCarBtn" type="button">
+            <span>＋</span><span data-i18n="addCar">Qo'shish</span>
+          </button>
+        </div>
+        <div id="carsList" class="cabinet__cars-list"></div>
+        <div class="cab-empty-hint" id="carsEmptyHint" data-i18n="carsEmpty">Avtomobil qo'shilmagan</div>
+      </section>
+
+      <!-- Tez filtrlar -->
+      <section class="cabinet__section">
+        <div class="cabinet__section-header">
+          <div class="cabinet__section-title" data-i18n="filtersTitle">Tez filtrlar</div>
+          <button class="cabinet__toggle-filters" id="toggleFilters" type="button">
+            <span id="filtersToggleIcon">▼</span>
+          </button>
+        </div>
+        <div class="cabinet__chips" id="filtersContainer">
+          <button class="chip" data-filter-fuel="Metan"><span class="chip__dot chip__dot--metan"></span>Metan</button>
+          <button class="chip" data-filter-fuel="Benzin"><span class="chip__dot chip__dot--benzin"></span>Benzin</button>
+          <button class="chip" data-filter-fuel="Dizel"><span class="chip__dot chip__dot--dizel"></span>Dizel</button>
+          <button class="chip" data-filter-tag="24/7"><span class="chip__ico">🕐</span>24/7</button>
+          <button class="chip" data-filter-tag="WC"><span class="chip__ico">🚻</span>WC</button>
+          <button class="chip" data-filter-tag="Kafe"><span class="chip__ico">☕</span>Kafe</button>
+        </div>
+      </section>
+
+      <!-- Sevimlilar -->
+      <section class="cabinet__section">
+        <div class="cabinet__section-header">
+          <div class="cabinet__section-title" data-i18n="favTitle">Sevimli zapravkalar</div>
+          <button class="cab-section-action cab-section-action--clear" id="clearFavsBtn" type="button" style="display:none;">
+            <span>🗑️</span><span data-i18n="clearFavs">Tozalash</span>
+          </button>
+        </div>
+        <div id="favoritesContainer" class="cabinet__card cabinet__card--empty">Hozircha sevimli zapravka yo'q.</div>
+      </section>
+
+      <!-- Oxirgi ko'rilganlar -->
+      <section class="cabinet__section">
+        <div class="cabinet__section-header">
+          <div class="cabinet__section-title" data-i18n="recentTitle">Oxirgi ko'rilganlar</div>
+        </div>
+        <div id="recentContainer" class="cabinet__card cabinet__card--empty" data-i18n="recentEmpty">Hali hech nima ko'rilmagan</div>
+      </section>
+
+      <!-- Sozlamalar -->
+      <section class="cabinet__section">
+        <div class="cabinet__section-title" data-i18n="settingsTitle">Sozlamalar</div>
+        <div class="cab-settings-list">
+          <div class="cab-setting-item">
+            <div class="cab-setting-item__info">
+              <span class="cab-setting-item__icon">🌙</span>
+              <span data-i18n="settingDarkMode">Tungi rejim</span>
+            </div>
+            <label class="cab-toggle">
+              <input type="checkbox" id="cabThemeSwitch" />
+              <span class="cab-toggle__slider"></span>
+            </label>
+          </div>
+          <div class="cab-setting-item">
+            <div class="cab-setting-item__info">
+              <span class="cab-setting-item__icon">🔔</span>
+              <span data-i18n="settingNotify">Bildirishnomalar</span>
+            </div>
+            <label class="cab-toggle">
+              <input type="checkbox" id="cabNotifySwitch" />
+              <span class="cab-toggle__slider"></span>
+            </label>
+          </div>
+          <div class="cab-setting-item">
+            <div class="cab-setting-item__info">
+              <span class="cab-setting-item__icon">🔊</span>
+              <span data-i18n="settingSound">Ovozli bildirishnoma</span>
+            </div>
+            <label class="cab-toggle">
+              <input type="checkbox" id="cabSoundSwitch" checked />
+              <span class="cab-toggle__slider"></span>
+            </label>
+          </div>
+          <div class="cab-setting-item">
+            <div class="cab-setting-item__info">
+              <span class="cab-setting-item__icon">🌐</span>
+              <span data-i18n="settingLang">Til</span>
+            </div>
+            <button class="cab-lang-switch" id="cabLangSwitch" type="button">
+              <span id="cabLangLabel">UZ</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quyi tugmalar -->
+      <section class="cabinet__section cab-bottom-actions">
+        <button class="cabinet__admin-link" id="adminPanelBtn" type="button">
+          <span>⚙️</span><span data-i18n="adminPanel">Admin panel</span><span>→</span>
+        </button>
+        <button class="cab-reset-btn" id="cabResetBtn" type="button">
+          <span>🔄</span><span data-i18n="resetData">Ma'lumotlarni tozalash</span>
+        </button>
+      </section>
+
+      <!-- Ilova versiyasi -->
+      <div class="cab-version">GazNav v3.1 · 2025</div>
+    </div>
+  </aside>
+
+  <!-- ADMIN PAROL MODAL -->
+  <div class="modal" id="adminPassModal">
+    <div class="modal__backdrop" id="adminPassBackdrop"></div>
+    <div class="modal__content" style="max-width:340px;">
+      <div class="admin-pass-modal">
+        <div class="admin-pass-modal__icon">🔐</div>
+        <div class="admin-pass-modal__title">Admin Panel</div>
+        <div class="admin-pass-modal__sub">Parolni kiriting kirish uchun</div>
+        <input type="password" id="adminPassInput" class="admin__input" placeholder="••••••••" style="margin:14px 0 6px;width:100%;" />
+        <div class="admin-pass-modal__error" id="adminPassError"></div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="admin__btn admin__btn--primary" id="adminPassSubmit" style="flex:1;">Kirish</button>
+          <button class="admin__btn" id="adminPassCancel" style="flex:1;">Bekor</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

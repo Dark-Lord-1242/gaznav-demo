@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8"/>
+  <title>GazNav · Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://api-maps.yandex.ru/2.1/?apikey=b0288c55-f3df-4e3f-b9c7-b5de58c0d2e7&lang=ru_RU" type="text/css"/>
+  <script src="https://api-maps.yandex.ru/2.1/?apikey=b0288c55-f3df-4e3f-b9c7-b5de58c0d2e7&lang=ru_RU"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0a0f1e;
+      --bg2:      #111827;
+      --bg3:      #1a2235;
+      --border:   rgba(99,118,160,0.18);
+      --accent:   #22d87a;
+      --accent2:  #3b82f6;
+      --danger:   #f43f5e;
+      --warn:     #f59e0b;
+      --text:     #e8edf5;
+      --muted:    #6b7a99;
+      --card:     #141b2d;
+      --sidebar-w: 220px;
+      --header-h:  60px;
+    }
+
+    html, body { height: 100%; overflow: hidden; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── AUTH ─────────────────────────────── */
+    #authScreen {
+      position: fixed; inset: 0; z-index: 999;
+      display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at 30% 20%, rgba(34,216,122,.08) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 80%, rgba(59,130,246,.07) 0%, transparent 55%),
+                  var(--bg);
+    }
+    .auth-card {
+      width: 360px; padding: 44px 36px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: 0 40px 80px rgba(0,0,0,.6);
+      display: flex; flex-direction: column; align-items: center; gap: 0;
+    }
+    .auth-logo { font-size: 48px; line-height: 1; margin-bottom: 16px; }
+    .auth-title { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -.5px; }
+    .auth-sub { font-size: 13px; color: var(--muted); margin-top: 4px; margin-bottom: 28px; }
+    .auth-input {
+      width: 100%; padding: 12px 16px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 15px; font-family: inherit;
+      outline: none; transition: border .2s;
+    }
+    .auth-input:focus { border-color: var(--accent); }
+    .auth-btn {
+      width: 100%; margin-top: 12px; padding: 13px;
+      background: linear-gradient(135deg, #22d87a, #16a34a);
+      border: none; border-radius: 10px;
+      color: #fff; font-size: 15px; font-weight: 600; font-family: inherit;
+      cursor: pointer; transition: opacity .2s, transform .1s;
+    }
+    .auth-btn:hover { opacity: .9; transform: translateY(-1px); }
+    .auth-btn:active { transform: scale(.98); }
+    .auth-err { font-size: 12px; color: var(--danger); min-height: 18px; margin-top: 8px; text-align: center; }
+    .auth-back { margin-top: 20px; font-size: 13px; color: var(--muted); text-decoration: none; transition: color .2s; }
+    .auth-back:hover { color: var(--accent); }
+
+    /* ── APP SHELL ────────────────────────── */
+    #app { display: none; height: 100vh; flex-direction: column; }
+    #app.visible { display: flex; }
+
+    /* ── TOPBAR ───────────────────────────── */
+    .topbar {
+      height: var(--header-h); flex-shrink: 0;
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 24px;
+      background: rgba(10,15,30,.9);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+    }
+    .topbar-brand {
+      font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
+      color: var(--accent); letter-spacing: -.3px; margin-right: 8px;
+    }
+    .topbar-brand span { color: var(--text); }
+    .topbar-sep { width: 1px; height: 24px; background: var(--border); }
+    .topbar-section { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .topbar-btn {
+      padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all .2s; font-family: inherit;
+    }
+    .topbar-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .topbar-stat { font-size: 12px; color: var(--muted); }
+    .topbar-stat strong { color: var(--accent); }
+
+    /* ── BODY ─────────────────────────────── */
+    .app-body { flex: 1; display: flex; min-height: 0; }
+
+    /* ── SIDEBAR ──────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w); flex-shrink: 0;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-search {
+      padding: 14px 12px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-search input {
+      width: 100%; padding: 8px 12px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 13px; font-family: inherit;
+      outline: none; transition: border .2s;
+    }
+    .sidebar-search input:focus { border-color: var(--accent2); }
+    .sidebar-filter-row {
+      display: flex; gap: 4px; padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .sfilter {
+      padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 11px; font-weight: 600;
+      cursor: pointer; transition: all .15s; font-family: inherit;
+    }
+    .sfilter.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .sidebar-list { flex: 1; overflow-y: auto; padding: 6px; }
+    .sidebar-list::-webkit-scrollbar { width: 4px; }
+    .sidebar-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .station-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 10px; border-radius: 10px;
+      cursor: pointer; transition: background .15s;
+      border: 1px solid transparent;
+      margin-bottom: 2px;
+    }
+    .station-item:hover { background: var(--bg3); }
+    .station-item.active { background: rgba(34,216,122,.08); border-color: rgba(34,216,122,.25); }
+    .station-item__dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+      background: var(--muted);
+    }
+    .station-item__dot.open { background: var(--accent); box-shadow: 0 0 6px rgba(34,216,122,.5); }
+    .station-item__info { flex: 1; min-width: 0; }
+    .station-item__name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .station-item__meta { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .sidebar-add-btn {
+      margin: 10px 12px 12px;
+      padding: 10px; border-radius: 10px;
+      border: 1px dashed rgba(34,216,122,.35);
+      background: transparent; color: var(--accent);
+      font-size: 13px; font-weight: 600; font-family: inherit;
+      cursor: pointer; transition: all .2s;
+    }
+    .sidebar-add-btn:hover { background: rgba(34,216,122,.08); }
+
+    /* ── MAIN PANEL ───────────────────────── */
+    .main-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+
+    /* ── DASHBOARD (no station) ───────────── */
+    .dashboard {
+      flex: 1; padding: 28px 28px 24px;
+      overflow-y: auto; display: flex; flex-direction: column; gap: 24px;
+    }
+    .dash-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
+    .dash-title span { color: var(--accent); }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px 20px;
+      display: flex; flex-direction: column; gap: 8px;
+      transition: border-color .2s, transform .2s;
+    }
+    .stat-card:hover { border-color: rgba(99,118,160,.4); transform: translateY(-2px); }
+    .stat-card__icon { font-size: 24px; }
+    .stat-card__val { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; line-height: 1; }
+    .stat-card__label { font-size: 12px; color: var(--muted); font-weight: 500; }
+    .stat-card--green .stat-card__val { color: var(--accent); }
+    .stat-card--blue .stat-card__val { color: var(--accent2); }
+    .stat-card--red .stat-card__val { color: var(--danger); }
+    .stat-card--warn .stat-card__val { color: var(--warn); }
+
+    .dash-section-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+
+    .fuel-bar-list { display: flex; flex-direction: column; gap: 10px; }
+    .fuel-bar { display: flex; align-items: center; gap: 12px; }
+    .fuel-bar__name { font-size: 13px; font-weight: 600; width: 60px; flex-shrink: 0; }
+    .fuel-bar__track { flex: 1; height: 6px; background: var(--bg3); border-radius: 999px; overflow: hidden; }
+    .fuel-bar__fill { height: 100%; border-radius: 999px; transition: width .6s ease; }
+    .fuel-bar__count { font-size: 12px; color: var(--muted); width: 24px; text-align: right; }
+
+    .region-list { display: flex; flex-direction: column; gap: 6px; }
+    .region-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; font-size: 13px; cursor: pointer; transition: background .15s;
+    }
+    .region-row:hover { background: var(--bg3); }
+    .region-row__name { font-weight: 600; }
+    .region-row__meta { font-size: 11px; color: var(--muted); }
+    .region-row__del { color: var(--muted); font-size: 16px; transition: color .2s; background: none; border: none; cursor: pointer; padding: 0 4px; }
+    .region-row__del:hover { color: var(--danger); }
+
+    .tags-flex { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 12px 5px 14px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 999px; font-size: 12px; font-weight: 600;
+    }
+    .tag-chip__edit { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 12px; transition: color .15s; }
+    .tag-chip__edit:hover { color: var(--accent2); }
+    .tag-chip__del { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 12px; transition: color .15s; }
+    .tag-chip__del:hover { color: var(--danger); }
+    .tag-add-row { display: flex; gap: 8px; margin-top: 10px; }
+    .tag-add-input {
+      flex: 1; padding: 8px 12px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 13px; font-family: inherit; outline: none;
+    }
+    .tag-add-input:focus { border-color: var(--accent2); }
+    .tag-add-btn {
+      padding: 8px 16px; border-radius: 8px; border: none;
+      background: var(--accent2); color: #fff; font-size: 13px; font-weight: 600; font-family: inherit;
+      cursor: pointer; white-space: nowrap; transition: opacity .2s;
+    }
+    .tag-add-btn:hover { opacity: .85; }
+
+    /* ── EDITOR ───────────────────────────── */
+    .editor {
+      flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+    }
+    .editor-topbar {
+      padding: 16px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    .editor-name { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; }
+    .editor-status-badge {
+      padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700;
+    }
+    .editor-status-badge.open { background: rgba(34,216,122,.15); color: var(--accent); border: 1px solid rgba(34,216,122,.3); }
+    .editor-status-badge.closed { background: rgba(244,63,94,.1); color: var(--danger); border: 1px solid rgba(244,63,94,.25); }
+    .editor-actions { margin-left: auto; display: flex; gap: 8px; }
+    .eBtn {
+      padding: 8px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; font-family: inherit;
+      cursor: pointer; border: 1px solid var(--border); background: var(--bg3); color: var(--text);
+      transition: all .2s;
+    }
+    .eBtn:hover { border-color: rgba(99,118,160,.5); }
+    .eBtn--save { background: linear-gradient(135deg, #22d87a, #16a34a); border-color: transparent; color: #fff; }
+    .eBtn--save:hover { opacity: .9; }
+    .eBtn--del { background: rgba(244,63,94,.1); border-color: rgba(244,63,94,.3); color: var(--danger); }
+    .eBtn--del:hover { background: rgba(244,63,94,.2); }
+
+    .editor-body { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+
+    /* LEFT FORM */
+    .editor-form { width: 360px; flex-shrink: 0; overflow-y: auto; padding: 20px 20px; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 16px; }
+    .editor-form::-webkit-scrollbar { width: 4px; }
+    .editor-form::-webkit-scrollbar-thumb { background: var(--border); }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .form-input, .form-select {
+      padding: 10px 12px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 9px; color: var(--text); font-size: 14px; font-family: inherit;
+      outline: none; transition: border .2s; width: 100%;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+    .form-row { display: flex; gap: 10px; }
+    .form-row .form-group { flex: 1; }
+    .form-divider { height: 1px; background: var(--border); }
+    .fuels-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .fuel-chip {
+      padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      border: 1px solid var(--border); background: var(--bg3); color: var(--muted);
+      cursor: pointer; transition: all .15s; user-select: none;
+    }
+    .fuel-chip.on { background: rgba(34,216,122,.12); border-color: rgba(34,216,122,.4); color: var(--accent); }
+    .tags-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag-toggle {
+      padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      border: 1px solid var(--border); background: var(--bg3); color: var(--muted);
+      cursor: pointer; transition: all .15s; user-select: none;
+    }
+    .tag-toggle.on { background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.4); color: var(--accent2); }
+    .status-toggle { display: flex; gap: 8px; }
+    .status-opt {
+      flex: 1; padding: 9px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--bg3); color: var(--muted); font-size: 13px; font-weight: 600;
+      cursor: pointer; text-align: center; transition: all .15s; font-family: inherit;
+    }
+    .status-opt.open.on { background: rgba(34,216,122,.12); border-color: var(--accent); color: var(--accent); }
+    .status-opt.closed.on { background: rgba(244,63,94,.08); border-color: var(--danger); color: var(--danger); }
+    .coord-row { display: flex; gap: 8px; align-items: flex-end; }
+    .coord-row .form-group { flex: 1; }
+    .coord-pick-btn {
+      padding: 10px 12px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--bg3); color: var(--accent2); font-size: 12px; font-weight: 600; font-family: inherit;
+      cursor: pointer; white-space: nowrap; transition: all .2s; flex-shrink: 0;
+    }
+    .coord-pick-btn:hover { border-color: var(--accent2); background: rgba(59,130,246,.1); }
+    .coord-hint { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* RIGHT MAP */
+    .editor-map { flex: 1; position: relative; min-width: 0; }
+    #editorMap { width: 100%; height: 100%; background: #0f1a2b; }
+    .map-click-hint {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      background: rgba(10,15,30,.85); border: 1px solid var(--accent2);
+      color: var(--accent2); font-size: 12px; font-weight: 600;
+      padding: 6px 14px; border-radius: 999px; pointer-events: none;
+      opacity: 0; transition: opacity .3s;
+    }
+    .map-click-hint.visible { opacity: 1; }
+
+    /* TOAST */
+    .a-toast-wrap { position: fixed; top: 14px; right: 14px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .a-toast {
+      padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+      animation: toast-in .25s ease; box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    }
+    .a-toast--ok { background: rgba(22,163,74,.95); color: #fff; border: 1px solid rgba(34,216,122,.4); }
+    .a-toast--err { background: rgba(220,38,38,.9); color: #fff; }
+    .a-toast--info { background: rgba(37,99,235,.9); color: #fff; }
+    @keyframes toast-in { from { opacity:0; transform: translateY(-8px); } to { opacity:1; transform: none; } }
+
+    /* CONFIRM MODAL */
+    .confirm-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center;
+    }
+    .confirm-overlay.open { display: flex; }
+    .confirm-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px 28px 22px;
+      width: 340px; box-shadow: 0 24px 60px rgba(0,0,0,.7);
+    }
+    .confirm-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .confirm-sub { font-size: 13px; color: var(--muted); margin-bottom: 22px; }
+    .confirm-btns { display: flex; gap: 8px; }
+    .confirm-btns button { flex: 1; padding: 10px; border-radius: 9px; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid var(--border); }
+    #confirmOk { background: var(--danger); color: #fff; border-color: var(--danger); }
+    #confirmCancel { background: var(--bg3); color: var(--text); }
+
+    /* EMPTY STATE */
+    .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); }
+    .empty-state__icon { font-size: 52px; opacity: .4; }
+    .empty-state__title { font-size: 16px; font-weight: 600; }
+    .empty-state__sub { font-size: 13px; opacity: .7; }
+
+    /* SCROLLBAR */
+    * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+    /* ── NOTIFICATIONS TAB ─────────────────── */
+    .notif-layout { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+    .notif-compose { width: 420px; flex-shrink: 0; border-right: 1px solid var(--border); overflow-y: auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 18px; }
+    .notif-history { flex: 1; overflow-y: auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 12px; }
+    .notif-compose::-webkit-scrollbar { width: 4px; }
+    .notif-compose::-webkit-scrollbar-thumb { background: var(--border); }
+    .notif-history::-webkit-scrollbar { width: 4px; }
+    .notif-history::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .notif-section-title {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px;
+    }
+
+    /* Telegram-style preview */
+    .tg-preview-wrap { background: #1a1f35; border-radius: 14px; padding: 14px; border: 1px solid var(--border); }
+    .tg-preview-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .tg-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #22d87a, #16a34a); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .tg-name { font-size: 13px; font-weight: 700; color: var(--accent); }
+    .tg-bot { font-size: 11px; color: var(--muted); }
+    .tg-bubble {
+      background: #1e3a5f; border-radius: 0 12px 12px 12px;
+      padding: 10px 14px; max-width: 100%;
+      font-size: 13px; line-height: 1.5; color: #e8edf5;
+      border: 1px solid rgba(59,130,246,.2); position: relative;
+    }
+    .tg-bubble::before { content:''; position:absolute; left:-7px; top:0; border:7px solid transparent; border-top-color: #1e3a5f; border-left:0; }
+    .tg-bubble-title { font-weight: 700; font-size: 14px; color: #fff; margin-bottom: 4px; }
+    .tg-bubble-body { color: #c5d0e8; white-space: pre-wrap; word-break: break-word; }
+    .tg-bubble-time { font-size: 10px; color: var(--muted); text-align: right; margin-top: 6px; }
+    .tg-bubble-btn {
+      margin-top: 8px; display: block; width: 100%;
+      padding: 7px; background: rgba(59,130,246,.15); border: 1px solid rgba(59,130,246,.3);
+      border-radius: 8px; color: var(--accent2); font-size: 12px; font-weight: 600;
+      text-align: center; cursor: default;
+    }
+
+    /* Audience selector */
+    .audience-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .audience-chip {
+      padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      border: 1px solid var(--border); background: var(--bg3); color: var(--muted);
+      cursor: pointer; transition: all .15s; user-select: none;
+    }
+    .audience-chip.on { background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.4); color: var(--accent2); }
+    .audience-count {
+      padding: 8px 14px; background: rgba(34,216,122,.06); border: 1px solid rgba(34,216,122,.2);
+      border-radius: 10px; font-size: 12px; color: var(--accent);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .audience-count strong { font-size: 20px; font-family: 'Syne', sans-serif; }
+
+    /* Schedule */
+    .schedule-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .schedule-toggle {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--bg3); color: var(--muted); font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all .2s; user-select: none;
+    }
+    .schedule-toggle.on { border-color: var(--warn); color: var(--warn); background: rgba(245,158,11,.08); }
+    .schedule-inputs { display: none; gap: 8px; flex-wrap: wrap; }
+    .schedule-inputs.visible { display: flex; }
+    .schedule-datetime {
+      padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg3); color: var(--text); font-size: 13px; font-family: inherit; outline: none;
+    }
+    .schedule-datetime:focus { border-color: var(--warn); }
+    .schedule-badge {
+      padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700;
+      background: rgba(245,158,11,.15); color: var(--warn); border: 1px solid rgba(245,158,11,.3);
+    }
+
+    /* Send button */
+    .notif-send-btn {
+      width: 100%; padding: 13px; border-radius: 11px; border: none;
+      background: linear-gradient(135deg, #22d87a, #16a34a);
+      color: #fff; font-size: 15px; font-weight: 700; font-family: inherit;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: opacity .2s, transform .1s; box-shadow: 0 4px 20px rgba(34,216,122,.3);
+    }
+    .notif-send-btn:hover { opacity: .9; transform: translateY(-1px); }
+    .notif-send-btn:active { transform: scale(.98); }
+    .notif-send-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* Scheduled send button */
+    .notif-schedule-btn {
+      width: 100%; padding: 11px; border-radius: 11px;
+      border: 1px solid rgba(245,158,11,.4);
+      background: rgba(245,158,11,.08);
+      color: var(--warn); font-size: 13px; font-weight: 700; font-family: inherit;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all .2s; margin-top: 6px;
+    }
+    .notif-schedule-btn:hover { background: rgba(245,158,11,.15); }
+    .notif-schedule-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* History cards */
+    .hist-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px 18px;
+      display: flex; flex-direction: column; gap: 8px;
+      transition: border-color .2s;
+    }
+    .hist-card:hover { border-color: rgba(99,118,160,.4); }
+    .hist-card__header { display: flex; align-items: flex-start; gap: 10px; }
+    .hist-card__icon { font-size: 22px; flex-shrink: 0; line-height: 1; }
+    .hist-card__meta { flex: 1; min-width: 0; }
+    .hist-card__title { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hist-card__body { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hist-card__tags { display: flex; flex-wrap: wrap; gap: 5px; }
+    .hist-card__footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+    .hist-stat { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+    .hist-stat strong { color: var(--text); }
+    .hist-badge {
+      padding: 3px 9px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: .03em;
+    }
+    .hist-badge--sent { background: rgba(34,216,122,.1); color: var(--accent); border: 1px solid rgba(34,216,122,.25); }
+    .hist-badge--sched { background: rgba(245,158,11,.1); color: var(--warn); border: 1px solid rgba(245,158,11,.25); }
+    .hist-badge--cancelled { background: rgba(244,63,94,.08); color: var(--danger); border: 1px solid rgba(244,63,94,.2); }
+    .hist-tag {
+      padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600;
+      background: rgba(59,130,246,.1); color: var(--accent2); border: 1px solid rgba(59,130,246,.2);
+    }
+    .hist-del-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; transition: color .15s; padding: 0 2px; }
+    .hist-del-btn:hover { color: var(--danger); }
+    .hist-cancel-btn {
+      padding: 4px 10px; border-radius: 7px; font-size: 11px; font-weight: 600; font-family: inherit;
+      background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); color: var(--warn);
+      cursor: pointer; transition: all .15s;
+    }
+    .hist-cancel-btn:hover { background: rgba(245,158,11,.2); }
+
+    .notif-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--muted); }
+    .notif-empty__icon { font-size: 44px; opacity: .35; }
+    .notif-empty__label { font-size: 13px; }
+
+    /* Notification tab item in sidebar */
+    .notif-nav-btn {
+      display: flex; align-items: center; gap: 8px;
+      margin: 10px 12px 4px;
+      padding: 9px 12px; border-radius: 10px;
+      border: 1px solid rgba(34,216,122,.25); background: transparent;
+      color: var(--accent); font-size: 13px; font-weight: 600; font-family: inherit;
+      cursor: pointer; transition: all .2s; width: calc(100% - 24px);
+    }
+    .notif-nav-btn:hover { background: rgba(34,216,122,.08); }
+    .notif-nav-btn .notif-pending-badge {
+      margin-left: auto; background: var(--warn); color: #000;
+      font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 999px; min-width: 18px; text-align: center;
+    }
+
+    /* Notification view wrapper */
+    #notifView { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+    #notifView.visible { display: flex; }
+    .notif-topbar {
+      padding: 14px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    .notif-topbar-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; }
+    .notif-topbar-stats { margin-left: auto; display: flex; gap: 14px; }
+    .notif-topbar-stat { font-size: 12px; color: var(--muted); }
+    .notif-topbar-stat strong { color: var(--text); }
+
+    /* Emoji picker */
+    .emoji-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .emoji-btn {
+      width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg3); font-size: 16px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; transition: all .15s;
+    }
+    .emoji-btn:hover { border-color: var(--accent2); background: rgba(59,130,246,.1); transform: scale(1.15); }
+
+    /* Type selector */
+    .notif-type-row { display: flex; gap: 6px; }
+    .notif-type-btn {
+      flex: 1; padding: 7px 4px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--bg3); color: var(--muted); font-size: 11px; font-weight: 600; font-family: inherit;
+      cursor: pointer; text-align: center; transition: all .15s;
+    }
+    .notif-type-btn.on { border-color: var(--accent2); color: var(--accent2); background: rgba(59,130,246,.1); }
+
+    /* Progress animation for sending */
+    @keyframes sending-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .5; }
+    }
+    .sending-anim { animation: sending-pulse .8s infinite; }
+
+    /* ── USERS VIEW ──────────────────────────── */
+    #usersView { flex:1; display:none; flex-direction:column; min-height:0; overflow:hidden; }
+    #usersView.visible { display:flex; }
+
+    .users-topbar {
+      padding:14px 24px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:16px; flex-shrink:0; flex-wrap:wrap;
+    }
+    .users-topbar-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:800; }
+    .users-topbar-stats { display:flex; gap:16px; }
+    .users-topbar-stat { font-size:12px; color:var(--muted); }
+    .users-topbar-stat strong { color:var(--accent); }
+    .users-refresh-btn {
+      margin-left:auto; padding:6px 14px; border-radius:8px;
+      border:1px solid var(--border); background:transparent; color:var(--muted);
+      font-size:12px; font-weight:600; cursor:pointer; transition:all .2s; font-family:inherit;
+    }
+    .users-refresh-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+    .users-body { flex:1; display:flex; min-height:0; overflow:hidden; }
+
+    /* Left: Table */
+    .users-table-side {
+      width:480px; flex-shrink:0; border-right:1px solid var(--border);
+      overflow-y:auto; display:flex; flex-direction:column;
+    }
+    .users-table-side::-webkit-scrollbar { width:4px; }
+    .users-table-side::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+    .users-table-wrap { padding:0; }
+    .users-table {
+      width:100%; border-collapse:collapse; font-size:12px;
+    }
+    .users-table thead { position:sticky; top:0; z-index:2; }
+    .users-table th {
+      text-align:left; padding:10px 12px;
+      background:var(--bg2); border-bottom:1px solid var(--border);
+      font-size:10px; font-weight:700; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.06em; white-space:nowrap;
+    }
+    .users-table td {
+      padding:10px 12px; border-bottom:1px solid rgba(99,118,160,.08);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px;
+    }
+    .users-table tbody tr {
+      cursor:pointer; transition:background .12s;
+    }
+    .users-table tbody tr:hover { background:var(--bg3); }
+    .users-table tbody tr.active { background:rgba(34,216,122,.08); }
+    .users-table-empty {
+      text-align:center; padding:40px 16px; color:var(--muted); font-size:13px;
+    }
+    .ut-name { font-weight:600; color:var(--text); }
+    .ut-name--empty { color:var(--muted); font-style:italic; font-weight:400; }
+    .ut-phone { color:var(--muted); }
+    .ut-badge {
+      display:inline-block; padding:2px 7px; border-radius:6px;
+      font-size:10px; font-weight:700;
+    }
+    .ut-badge--on { background:rgba(34,216,122,.12); color:var(--accent); }
+    .ut-badge--off { background:rgba(99,118,160,.12); color:var(--muted); }
+    .ut-dot {
+      display:inline-block; width:8px; height:8px; border-radius:50%;
+    }
+    .ut-dot--online { background:var(--accent); box-shadow:0 0 6px rgba(34,216,122,.5); }
+    .ut-dot--offline { background:var(--muted); }
+    .ut-time { font-size:11px; color:var(--muted); }
+
+    /* Right: Detail panel */
+    .users-detail-side {
+      flex:1; overflow-y:auto; padding:20px; min-width:0;
+    }
+    .users-detail-side::-webkit-scrollbar { width:4px; }
+    .users-detail-side::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+    .users-detail-empty {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      height:100%; gap:8px; color:var(--muted);
+    }
+    .users-detail-empty__icon { font-size:52px; opacity:.3; }
+    .users-detail-empty__text { font-size:16px; font-weight:600; }
+    .users-detail-empty__sub { font-size:12px; opacity:.6; }
+
+    /* Detail header */
+    .ud-header {
+      display:flex; align-items:center; gap:14px;
+      padding-bottom:16px; margin-bottom:16px; border-bottom:1px solid var(--border);
+    }
+    .ud-avatar {
+      width:52px; height:52px; border-radius:16px;
+      background:conic-gradient(from 210deg,#f97316,#facc15,#22c55e,#0ea5e9,#a855f7,#f97316);
+      padding:2.5px; flex-shrink:0;
+    }
+    .ud-avatar span {
+      width:100%; height:100%; border-radius:14px;
+      background:var(--card); display:flex; align-items:center;
+      justify-content:center; font-size:24px;
+    }
+    .ud-info { flex:1; }
+    .ud-name { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; }
+    .ud-meta { font-size:12px; color:var(--muted); margin-top:2px; }
+    .ud-id { font-size:10px; color:var(--muted); opacity:.6; font-family:monospace; }
+
+    /* Detail cards grid */
+    .ud-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:12px;
+    }
+    .ud-card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:10px;
+      transition:border-color .2s;
+    }
+    .ud-card:hover { border-color:rgba(99,118,160,.35); }
+    .ud-card--full { grid-column:1/-1; }
+    .ud-card-title {
+      font-size:11px; font-weight:700; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.05em;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .ud-card-badge {
+      padding:2px 8px; border-radius:999px;
+      font-size:10px; font-weight:700;
+      background:rgba(34,216,122,.12); color:var(--accent);
+      border:1px solid rgba(34,216,122,.2);
+    }
+    .ud-empty {
+      text-align:center; padding:12px 8px;
+      color:var(--muted); font-size:12px;
+      border:1px dashed var(--border); border-radius:8px;
+    }
+    .ud-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:8px 12px; background:var(--bg3); border:1px solid var(--border);
+      border-radius:8px; font-size:12px;
+    }
+    .ud-row__label { color:var(--muted); font-weight:600; font-size:10px; text-transform:uppercase; letter-spacing:.04em; }
+    .ud-row__val { font-weight:600; }
+    .ud-row__val--empty { color:var(--muted); font-style:italic; font-weight:400; }
+
+    /* Fav / car items in detail */
+    .ud-item {
+      display:flex; align-items:center; gap:10px;
+      padding:8px 10px; background:var(--bg3); border:1px solid var(--border);
+      border-radius:8px; font-size:12px;
+    }
+    .ud-item + .ud-item { margin-top:4px; }
+    .ud-item__icon {
+      width:28px; height:28px; border-radius:8px;
+      display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;
+    }
+    .ud-item__icon--fuel {
+      background:conic-gradient(from 200deg,#f97316,#facc15,#22c55e,#0ea5e9,#f97316);
+      padding:1.5px;
+    }
+    .ud-item__icon--fuel span {
+      width:100%; height:100%; border-radius:6px; background:var(--card);
+      display:flex; align-items:center; justify-content:center; font-size:12px;
+    }
+    .ud-item__icon--car { background:rgba(59,130,246,.12); }
+    .ud-item__info { flex:1; min-width:0; }
+    .ud-item__name { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ud-item__meta { font-size:10px; color:var(--muted); margin-top:1px; }
+    .ud-item__tag {
+      padding:2px 6px; border-radius:5px; font-size:9px; font-weight:700;
+      background:rgba(34,216,122,.1); color:var(--accent); border:1px solid rgba(34,216,122,.2);
+    }
+
+    /* Settings grid inside card */
+    .ud-settings-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .ud-setting {
+      display:flex; align-items:center; gap:6px;
+      padding:7px 10px; background:var(--bg3); border:1px solid var(--border);
+      border-radius:8px; font-size:11px;
+    }
+    .ud-setting__icon { font-size:14px; }
+    .ud-setting__label { flex:1; color:var(--muted); }
+    .ud-setting__val {
+      padding:2px 6px; border-radius:5px; font-size:10px; font-weight:700;
+    }
+    .ud-setting__val--on { background:rgba(34,216,122,.12); color:var(--accent); }
+    .ud-setting__val--off { background:rgba(244,63,94,.08); color:var(--danger); }
+    .ud-setting__val--neutral { background:rgba(59,130,246,.1); color:var(--accent2); }
+  </style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">⛽</div>
+    <div class="auth-title">Gaz<span style="color:var(--accent)">Nav</span></div>
+    <div class="auth-sub">Admin Panel · Kirish</div>
+    <input id="authInput" class="auth-input" type="password" placeholder="Parol" autocomplete="current-password"/>
+    <button id="authBtn" class="auth-btn">Kirish →</button>
+    <div id="authErr" class="auth-err"></div>
+    <a href="index.html" class="auth-back">← Bosh sahifaga qaytish</a>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header class="topbar">
+    <span class="topbar-brand">⛽ Gaz<span>Nav</span></span>
+    <span class="topbar-sep"></span>
+    <span class="topbar-section" id="topbarSection">Dashboard</span>
+    <div class="topbar-right">
+      <span class="topbar-stat">Jami: <strong id="tbTotal">0</strong> · Ochiq: <strong id="tbOpen">0</strong></span>
+      <button class="topbar-btn" id="tbLang">UZ/RU</button>
+      <button class="topbar-btn" id="tbLogout" title="Chiqish">🚪 Chiqish</button>
+      <a href="index.html" class="topbar-btn" style="text-decoration:none;">← Bosh sahifa</a>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-search">
+        <input id="sidebarSearch" type="text" placeholder="🔍  Zapravka qidirish..."/>
+      </div>
+      <div class="sidebar-filter-row">
+        <button class="sfilter active" data-f="all">Barchasi</button>
+        <button class="sfilter" data-f="open">✅ Ochiq</button>
+        <button class="sfilter" data-f="closed">🔴 Yopiq</button>
+      </div>
+      <div class="sidebar-list" id="sidebarList"></div>
+      <button class="sidebar-add-btn" id="addNewBtn">＋ Yangi zapravka</button>
+      <button class="notif-nav-btn" id="usersNavBtn">
+        👥 Foydalanuvchilar
+      </button>
+      <button class="notif-nav-btn" id="notifNavBtn">
+        🔔 Bildirishnomalar
+        <span class="notif-pending-badge" id="notifPendingBadge" style="display:none">0</span>
+      </button>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main-panel" id="mainPanel">
+      <!-- Dashboard (default) -->
+      <div class="dashboard" id="dashboardView">
+        <div>
+          <div class="dash-title">Xush kelibsiz, <span>Admin</span> 👋</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px;" id="dashDate"></div>
+        </div>
+
+        <div>
+          <div class="dash-section-title">Umumiy statistika</div>
+          <div class="stats-grid">
+            <div class="stat-card stat-card--green">
+              <div class="stat-card__icon">⛽</div>
+              <div class="stat-card__val" id="ds-total">0</div>
+              <div class="stat-card__label">Jami zapravkalar</div>
+            </div>
+            <div class="stat-card stat-card--green">
+              <div class="stat-card__icon">✅</div>
+              <div class="stat-card__val" id="ds-open">0</div>
+              <div class="stat-card__label">Ochiq ishlaydi</div>
+            </div>
+            <div class="stat-card stat-card--red">
+              <div class="stat-card__icon">🔴</div>
+              <div class="stat-card__val" id="ds-closed">0</div>
+              <div class="stat-card__label">Yopiq</div>
+            </div>
+            <div class="stat-card stat-card--blue">
+              <div class="stat-card__icon">📍</div>
+              <div class="stat-card__val" id="ds-regions">0</div>
+              <div class="stat-card__label">Viloyatlar</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <!-- Yonilg'i -->
+          <div>
+            <div class="dash-section-title">Yonilg'i turlari</div>
+            <div class="fuel-bar-list" id="ds-fuels"></div>
+          </div>
+          <!-- Viloyatlar -->
+          <div>
+            <div class="dash-section-title">Viloyatlar</div>
+            <div class="region-list" id="ds-regions-list" style="max-height:200px;overflow-y:auto;"></div>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <div class="dash-section-title" style="margin-bottom:12px;">Filtr teglari boshqaruvi</div>
+          <div class="tags-flex" id="ds-tags"></div>
+          <div class="tag-add-row">
+            <input id="tagAddInput" class="tag-add-input" type="text" placeholder="Yangi teg (masalan: Avtomoyka)"/>
+            <button class="tag-add-btn" id="tagAddBtn">＋ Qo'shish</button>
+          </div>
+        </div>
+
+        <!-- Viloyat/Tuman qo'shish -->
+        <div>
+          <div class="dash-section-title" style="margin-bottom:12px;">Hudud qo'shish</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <input id="newRegionInput" class="tag-add-input" type="text" placeholder="Viloyat nomi" style="max-width:200px;"/>
+            <input id="newDistrictInput" class="tag-add-input" type="text" placeholder="Tuman nomi (ixtiyoriy)" style="max-width:200px;"/>
+            <button class="tag-add-btn" id="addRegionBtn">Qo'shish</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Editor (when station selected) -->
+      <div class="editor" id="editorView" style="display:none;">
+        <div class="editor-topbar">
+          <span class="editor-name" id="editorTitle">Zapravka</span>
+          <span class="editor-status-badge" id="editorBadge">—</span>
+          <div class="editor-actions">
+            <button class="eBtn eBtn--save" id="eSave">💾 Saqlash</button>
+            <button class="eBtn eBtn--del" id="eDelete">🗑️ O'chirish</button>
+          </div>
+        </div>
+        <div class="editor-body">
+          <!-- FORM -->
+          <div class="editor-form">
+            <div class="form-group">
+              <label>Zapravka nomi</label>
+              <input id="fName" class="form-input" type="text" placeholder="Masalan: UNG Petro"/>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Viloyat</label>
+                <select id="fRegion" class="form-select"></select>
+              </div>
+              <div class="form-group">
+                <label>Tuman</label>
+                <select id="fDistrict" class="form-select"></select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Ish vaqti</label>
+              <input id="fOpenTime" class="form-input" type="text" placeholder="24/7  yoki  08:00–22:00"/>
+            </div>
+
+            <div class="form-divider"></div>
+
+            <div class="form-group">
+              <label>Status</label>
+              <div class="status-toggle">
+                <button class="status-opt open" id="sOptOpen" type="button">✅ Ochiq</button>
+                <button class="status-opt closed" id="sOptClosed" type="button">🔴 Yopiq</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Yonilg'i turlari</label>
+              <div class="fuels-chips" id="fuelsChips">
+                <button class="fuel-chip" data-fuel="Metan">🔵 Metan</button>
+                <button class="fuel-chip" data-fuel="Benzin">🔴 Benzin</button>
+                <button class="fuel-chip" data-fuel="Dizel">🟡 Dizel</button>
+                <button class="fuel-chip" data-fuel="Propan">🟠 Propan</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Tegler (Tags)</label>
+              <div class="tags-chips" id="tagsChipsEditor"></div>
+            </div>
+
+            <div class="form-divider"></div>
+
+            <div class="form-group">
+              <label>Koordinatalar</label>
+              <div class="coord-row">
+                <div class="form-group">
+                  <label style="font-size:10px">Latitude</label>
+                  <input id="fLat" class="form-input" type="number" step="0.000001" placeholder="41.3275"/>
+                </div>
+                <div class="form-group">
+                  <label style="font-size:10px">Longitude</label>
+                  <input id="fLng" class="form-input" type="number" step="0.000001" placeholder="69.2817"/>
+                </div>
+                <button class="coord-pick-btn" id="coordPickBtn" type="button">📍 Xaritadan</button>
+              </div>
+              <div class="coord-hint" id="coordHint">Xaritaga bosing — koordinata avtomatik o'rnatiladi</div>
+            </div>
+          </div>
+
+          <!-- MAP -->
+          <div class="editor-map">
+            <div id="editorMap"></div>
+            <div class="map-click-hint" id="mapClickHint">📍 Joylashuvni bosib belgilang</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTIFICATION VIEW -->
+      <div id="notifView">
+        <div class="notif-topbar">
+          <span class="notif-topbar-title">🔔 Bildirishnomalar</span>
+          <div class="notif-topbar-stats">
+            <span class="notif-topbar-stat">Jami yuborilgan: <strong id="notifStatTotal">0</strong></span>
+            <span class="notif-topbar-stat">Rejalashtirilgan: <strong id="notifStatSched">0</strong></span>
+            <span class="notif-topbar-stat">Qabul qiluvchilar: <strong id="notifStatUsers">0</strong></span>
+          </div>
+        </div>
+        <div class="notif-layout">
+          <!-- COMPOSE -->
+          <div class="notif-compose">
+            <div>
+              <div class="notif-section-title">Xabar turi</div>
+              <div class="notif-type-row">
+                <button class="notif-type-btn on" data-ntype="info">ℹ️ Xabar</button>
+                <button class="notif-type-btn" data-ntype="alert">⚠️ Ogohlantirish</button>
+                <button class="notif-type-btn" data-ntype="promo">🎁 Aksiya</button>
+                <button class="notif-type-btn" data-ntype="update">🔄 Yangilanish</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="notif-section-title">Emoji</div>
+              <div class="emoji-row" id="emojiRow">
+                <button class="emoji-btn" data-emoji="⛽">⛽</button>
+                <button class="emoji-btn" data-emoji="🔔">🔔</button>
+                <button class="emoji-btn" data-emoji="🎁">🎁</button>
+                <button class="emoji-btn" data-emoji="⚠️">⚠️</button>
+                <button class="emoji-btn" data-emoji="✅">✅</button>
+                <button class="emoji-btn" data-emoji="🔴">🔴</button>
+                <button class="emoji-btn" data-emoji="🟢">🟢</button>
+                <button class="emoji-btn" data-emoji="📢">📢</button>
+                <button class="emoji-btn" data-emoji="💬">💬</button>
+                <button class="emoji-btn" data-emoji="🔥">🔥</button>
+                <button class="emoji-btn" data-emoji="📍">📍</button>
+                <button class="emoji-btn" data-emoji="🚗">🚗</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="notif-section-title">Sarlavha</div>
+              <input id="notifTitle" class="form-input" type="text" placeholder="Masalan: ⛽ Yangi zapravka ochildi!" maxlength="80"/>
+            </div>
+
+            <div>
+              <div class="notif-section-title">Xabar matni</div>
+              <textarea id="notifBody" class="form-input" rows="5" placeholder="Xabar matnini kiriting... (Markdown qo'llab-quvvatlanadi)" maxlength="1000" style="resize:vertical;min-height:100px;"></textarea>
+              <div style="text-align:right;font-size:10px;color:var(--muted);margin-top:3px;"><span id="notifCharCount">0</span>/1000</div>
+            </div>
+
+            <div>
+              <div class="notif-section-title">Tugma (ixtiyoriy)</div>
+              <input id="notifBtnText" class="form-input" type="text" placeholder="Masalan: Ko'rish →" maxlength="40"/>
+            </div>
+
+            <div>
+              <div class="notif-section-title" style="margin-bottom:8px;">👁 Ko'rinish (preview)</div>
+              <div class="tg-preview-wrap">
+                <div class="tg-preview-header">
+                  <div class="tg-avatar">⛽</div>
+                  <div>
+                    <div class="tg-name">GazNav</div>
+                    <div class="tg-bot">bot</div>
+                  </div>
+                </div>
+                <div class="tg-bubble">
+                  <div class="tg-bubble-title" id="previewTitle">Sarlavha...</div>
+                  <div class="tg-bubble-body" id="previewBody">Xabar matni bu yerda ko'rinadi...</div>
+                  <div class="tg-bubble-btn" id="previewBtn" style="display:none"></div>
+                  <div class="tg-bubble-time" id="previewTime">Hozir</div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="notif-section-title" style="margin-bottom:8px;">Auditoriya</div>
+              <div class="audience-chips" id="audienceChips">
+                <button class="audience-chip on" data-audience="all">🌐 Barcha foydalanuvchilar</button>
+                <button class="audience-chip" data-audience="region">📍 Toshkent viloyati</button>
+                <button class="audience-chip" data-audience="metan">🔵 Metan foydalanuvchilar</button>
+                <button class="audience-chip" data-audience="benzin">🔴 Benzin</button>
+                <button class="audience-chip" data-audience="dizel">🟡 Dizel</button>
+                <button class="audience-chip" data-audience="premium">⭐ Premium</button>
+              </div>
+              <div class="audience-count" style="margin-top:10px;">
+                <span>📡 Taxminiy qabul qiluvchilar:</span>
+                <strong id="audienceCountVal">2,847</strong>
+                <span>ta foydalanuvchi</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="notif-section-title" style="margin-bottom:8px;">Yuborish vaqti</div>
+              <div class="schedule-row">
+                <button class="schedule-toggle" id="scheduleToggle" type="button">
+                  🕐 Rejalashtirish
+                </button>
+                <span class="schedule-badge" id="scheduleNowBadge">Hozir yuboriladi</span>
+              </div>
+              <div class="schedule-inputs" id="scheduleInputs">
+                <input type="datetime-local" id="scheduleDateTime" class="schedule-datetime"/>
+                <button class="schedule-toggle on" id="scheduleClearBtn" type="button" style="font-size:11px;">✕ Bekor</button>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid var(--border);padding-top:16px;">
+              <button class="notif-send-btn" id="notifSendBtn">
+                <span id="notifSendBtnIcon">📤</span>
+                <span id="notifSendBtnText">Yuborish</span>
+              </button>
+              <button class="notif-schedule-btn" id="notifScheduleBtn" style="display:none">
+                ⏰ Belgilangan vaqtda yuborish
+              </button>
+            </div>
+          </div>
+
+          <!-- HISTORY -->
+          <div class="notif-history" id="notifHistory">
+            <div class="notif-section-title" style="margin-bottom:0">Yuborish tarixi</div>
+            <div id="notifHistoryList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- USERS VIEW -->
+      <div id="usersView">
+        <div class="users-topbar">
+          <span class="users-topbar-title">👥 Foydalanuvchilar</span>
+          <div class="users-topbar-stats">
+            <span class="users-topbar-stat">Jami: <strong id="usersStatTotal">0</strong></span>
+            <span class="users-topbar-stat">Profil to'ldirilgan: <strong id="usersStatProfiles">0</strong></span>
+            <span class="users-topbar-stat">Avtomobillar: <strong id="usersStatCars">0</strong></span>
+          </div>
+          <button class="users-refresh-btn" id="usersRefreshBtn" type="button">🔄 Yangilash</button>
+        </div>
+        <div class="users-body">
+          <!-- Chap: Foydalanuvchilar jadvali -->
+          <div class="users-table-side">
+            <div class="users-table-wrap">
+              <table class="users-table" id="usersTable">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Ism</th>
+                    <th>Telefon</th>
+                    <th>Avtolar</th>
+                    <th>Sevimli</th>
+                    <th>Oxirgi faollik</th>
+                    <th>Holat</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                  <tr><td colspan="7" class="users-table-empty">Foydalanuvchilar topilmadi</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- O'ng: Tanlangan foydalanuvchi tafsilotlari -->
+          <div class="users-detail-side" id="usersDetailSide">
+            <div class="users-detail-empty">
+              <div class="users-detail-empty__icon">👤</div>
+              <div class="users-detail-empty__text">Foydalanuvchini tanlang</div>
+              <div class="users-detail-empty__sub">Chapdan foydalanuvchini bosib ma'lumotlarini ko'ring</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirmTitle">O'chirishni tasdiqlang</div>
+    <div class="confirm-sub" id="confirmSub">Bu amalni qaytarib bo'lmaydi.</div>
+    <div class="confirm-btns">
+      <button id="confirmOk">O'chirish</button>
+      <button id="confirmCancel">Bekor qilish</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="a-toast-wrap" id="toastWrap"></div>
+
+<script src="admin.js"></script>
+</body>
+</html>
