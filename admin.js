@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════
 const LS_KEY      = "gaznav-state-v1";
 const AUTH_KEY    = "gaznav-admin-auth";
-const ADMIN_PASS  = "20072007";
+const ADMIN_PASS  = "****";
 
 // ── STATE ────────────────────────────────
 const DEFAULT = {
@@ -56,6 +56,77 @@ function toast(msg, type = "ok") {
   setTimeout(() => { el.style.opacity="0"; el.style.transform="translateY(-6px)"; setTimeout(()=>el.remove(),250); }, 2800);
 }
 
+// ── SOUND SYSTEM ────────────────────────
+let _aCtx = null;
+function _getACtx() {
+  try {
+    if (!_aCtx || _aCtx.state === 'closed') {
+      const C = window.AudioContext || window.webkitAudioContext;
+      if (!C) return null;
+      _aCtx = new C();
+    }
+    if (_aCtx.state === 'suspended') _aCtx.resume();
+    return _aCtx;
+  } catch(_) { return null; }
+}
+function _snd(notes, vol, wave) {
+  try {
+    const ctx = _getACtx(); if (!ctx) return;
+    notes.forEach(([freq, delay, dur]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = wave || "sine"; o.frequency.value = freq; g.gain.value = 0.0001;
+      o.connect(g); g.connect(ctx.destination);
+      const t = ctx.currentTime + delay;
+      o.start(t); g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + .015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.stop(t + dur + .01);
+    });
+  } catch(_) {}
+}
+function sndClick()   { _snd([[800,0,.06]],.05,"sine"); }
+function sndSave()    { _snd([[523,0,.1],[659,.08,.1],[784,.16,.15]],.1,"sine"); }
+function sndDelete()  { _snd([[600,0,.1],[500,.08,.1],[400,.16,.1],[300,.24,.15]],.07,"triangle"); }
+function sndFilter()  { _snd([[660,0,.1],[880,.06,.08]],.06,"sine"); }
+function sndSelect()  { _snd([[880,0,.15],[1109,.1,.18]],.1,"sine"); }
+function sndOpen()    { _snd([[400,0,.08],[530,.06,.1],[660,.12,.15]],.08,"sine"); }
+function sndClose()   { _snd([[600,0,.08],[400,.06,.12]],.06,"triangle"); }
+function sndToggle()  { _snd([[523,0,.08],[784,.06,.1]],.07,"sine"); }
+function sndError()   { _snd([[350,0,.12],[280,.1,.18]],.08,"square"); }
+function sndSuccess() { _snd([[659,0,.1],[784,.08,.1],[1047,.16,.2]],.1,"sine"); }
+function sndNotify()  { _snd([[880,0,.1],[1100,.08,.12],[880,.18,.08]],.09,"sine"); }
+function sndAdd()     { _snd([[523,0,.08],[659,.06,.08],[784,.12,.12]],.08,"sine"); }
+function sndNav()     { _snd([[440,0,.08],[550,.06,.1]],.05,"triangle"); }
+function sndType()    { _snd([[1000,0,.04]],.03,"sine"); }
+// iOS unlock
+document.addEventListener("touchstart", function _u() {
+  const c = _getACtx(); if (c && c.state === "suspended") c.resume();
+  document.removeEventListener("touchstart", _u);
+}, { passive: true, once: true });
+
+// ── MOBILE SIDEBAR TOGGLE ────────────────
+const sidebarToggleBtn = document.getElementById("sidebarToggle");
+const sidebarPanel     = document.getElementById("sidebarPanel");
+const sidebarBackdrop  = document.getElementById("sidebarBackdrop");
+if (sidebarToggleBtn && sidebarPanel) {
+  sidebarToggleBtn.addEventListener("click", () => {
+    sndNav();
+    sidebarPanel.classList.toggle("mobile-open");
+    sidebarBackdrop.classList.toggle("open");
+  });
+}
+if (sidebarBackdrop) {
+  sidebarBackdrop.addEventListener("click", () => {
+    sndClose();
+    sidebarPanel.classList.remove("mobile-open");
+    sidebarBackdrop.classList.remove("open");
+  });
+}
+function closeMobileSidebar() {
+  if (sidebarPanel) sidebarPanel.classList.remove("mobile-open");
+  if (sidebarBackdrop) sidebarBackdrop.classList.remove("open");
+}
+
 // ── CONFIRM MODAL ─────────────────────────
 function confirmDialog(title, sub) {
   return new Promise(res => {
@@ -78,6 +149,7 @@ const appEl      = document.getElementById("app");
 document.getElementById("authBtn").addEventListener("click", tryLogin);
 document.getElementById("authInput").addEventListener("keydown", e => { if(e.key==="Enter") tryLogin(); });
 document.getElementById("tbLogout").addEventListener("click", () => {
+  sndClose();
   sessionStorage.removeItem(AUTH_KEY);
   authScreen.style.display = "flex";
   appEl.classList.remove("visible");
@@ -86,11 +158,13 @@ document.getElementById("tbLogout").addEventListener("click", () => {
 function tryLogin() {
   const v = document.getElementById("authInput").value;
   if (v === ADMIN_PASS) {
+    sndSuccess();
     sessionStorage.setItem(AUTH_KEY, "ok");
     authScreen.style.display = "none";
     appEl.classList.add("visible");
     initApp();
   } else {
+    sndError();
     const e = document.getElementById("authErr");
     e.textContent = "❌ Parol noto'g'ri!";
     document.getElementById("authInput").value = "";
@@ -123,6 +197,7 @@ function initApp() {
 
   // lang toggle
   document.getElementById("tbLang").addEventListener("click", () => {
+    sndClick();
     state.language = state.language === "uz" ? "ru" : "uz";
     saveState();
     toast("Til o'zgartirildi", "info");
@@ -166,6 +241,7 @@ document.getElementById("sidebarSearch").addEventListener("input", e => {
 });
 document.querySelectorAll(".sfilter").forEach(btn => {
   btn.addEventListener("click", () => {
+    sndFilter();
     sFilter = btn.dataset.f;
     document.querySelectorAll(".sfilter").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
@@ -196,7 +272,7 @@ function renderSidebar() {
         <div class="station-item__name">${s.name}</div>
         <div class="station-item__meta">${s.district||s.region||"–"} · ${(s.fuels||[]).join(", ")}</div>
       </div>`;
-    el.addEventListener("click", () => selectStation(s.id));
+    el.addEventListener("click", () => { sndSelect(); closeMobileSidebar(); selectStation(s.id); });
     list.appendChild(el);
   });
 }
@@ -310,7 +386,8 @@ document.getElementById("tagAddBtn").addEventListener("click", () => {
   const v = (document.getElementById("tagAddInput").value||"").trim();
   if (!v) return;
   ensureTags();
-  if (state.tags.includes(v)) { toast("Bu teg allaqachon mavjud!", "err"); return; }
+  if (state.tags.includes(v)) { sndError(); toast("Bu teg allaqachon mavjud!", "err"); return; }
+  sndAdd();
   state.tags.push(v);
   saveState(); renderTagsOnDashboard();
   document.getElementById("tagAddInput").value = "";
@@ -323,7 +400,8 @@ document.getElementById("tagAddInput").addEventListener("keydown", e => { if(e.k
 document.getElementById("addRegionBtn").addEventListener("click", () => {
   const reg = (document.getElementById("newRegionInput").value||"").trim();
   const dis = (document.getElementById("newDistrictInput").value||"").trim();
-  if (!reg) { toast("Viloyat nomini kiriting!", "err"); return; }
+  if (!reg) { sndError(); toast("Viloyat nomini kiriting!", "err"); return; }
+  sndAdd();
   ensureLocations();
   let loc = state.locations.find(l=>(l.region||l.city)===reg);
   if (!loc) { loc={region:reg,city:reg,districts:[]}; state.locations.push(loc); }
@@ -409,23 +487,26 @@ document.getElementById("fRegion").addEventListener("change", function() {
 
 // Status toggle
 document.getElementById("sOptOpen").addEventListener("click",   () => {
+  sndToggle();
   document.getElementById("sOptOpen").classList.add("on");
   document.getElementById("sOptClosed").classList.remove("on");
 });
 document.getElementById("sOptClosed").addEventListener("click", () => {
+  sndToggle();
   document.getElementById("sOptClosed").classList.add("on");
   document.getElementById("sOptOpen").classList.remove("on");
 });
 
 // Fuel chips
 document.querySelectorAll(".fuel-chip").forEach(chip => {
-  chip.addEventListener("click", () => chip.classList.toggle("on"));
+  chip.addEventListener("click", () => { sndFilter(); chip.classList.toggle("on"); });
 });
 
 // ── SAVE ─────────────────────────────────
 document.getElementById("eSave").addEventListener("click", () => {
   const s = (state.stations||[]).find(x=>x.id===currentId);
   if (!s) return;
+  sndSave();
   const oldStatus = s.status;
 
   s.name     = document.getElementById("fName").value.trim() || s.name;
@@ -463,8 +544,10 @@ document.getElementById("eSave").addEventListener("click", () => {
 document.getElementById("eDelete").addEventListener("click", async () => {
   const s = (state.stations||[]).find(x=>x.id===currentId);
   if (!s) return;
+  sndClick();
   const ok = await confirmDialog(`"${s.name}" ni o'chirish`, "Bu amalni qaytarib bo'lmaydi. Davom etasizmi?");
   if (!ok) return;
+  sndDelete();
   state.stations = state.stations.filter(x=>x.id!==currentId);
   saveState(); renderSidebar(); renderDashboard(); showDashboard();
   toast(`"${s.name}" o'chirildi`,"ok");
@@ -472,6 +555,8 @@ document.getElementById("eDelete").addEventListener("click", async () => {
 
 // ── ADD NEW ───────────────────────────────
 function addNewStation() {
+  sndAdd();
+  closeMobileSidebar();
   const newId = Math.max(0,...(state.stations||[]).map(s=>s.id||0)) + 1;
   const s = { id:newId, name:"Yangi zapravka #"+newId, fuels:["Metan"], tags:[], status:"closed", region:(state.locations[0]?.region||"Toshkent viloyati"), district:"", openTime:"24/7", lat:41.33, lng:69.29 };
   state.stations.push(s);
@@ -527,7 +612,7 @@ function updateEditorMapMarker(s) {
 }
 
 // Pick mode
-document.getElementById("coordPickBtn").addEventListener("click", () => setPickMode(!pickMode));
+document.getElementById("coordPickBtn").addEventListener("click", () => { sndToggle(); setPickMode(!pickMode); });
 
 function setPickMode(on) {
   pickMode = on;
@@ -624,6 +709,7 @@ function updateNotifStats() {
 let activeType = "info";
 document.querySelectorAll(".notif-type-btn").forEach(btn => {
   btn.addEventListener("click", () => {
+    sndType();
     document.querySelectorAll(".notif-type-btn").forEach(b => b.classList.remove("on"));
     btn.classList.add("on");
     activeType = btn.dataset.ntype;
@@ -633,6 +719,7 @@ document.querySelectorAll(".notif-type-btn").forEach(btn => {
 // ── Emoji insert ───────────────────────────────────────
 document.querySelectorAll(".emoji-btn").forEach(btn => {
   btn.addEventListener("click", () => {
+    sndClick();
     const titleEl = document.getElementById("notifTitle");
     const pos = titleEl.selectionStart;
     const val = titleEl.value;
@@ -676,6 +763,7 @@ let activeAudiences = new Set(["all"]);
 
 document.querySelectorAll(".audience-chip").forEach(chip => {
   chip.addEventListener("click", () => {
+    sndFilter();
     const a = chip.dataset.audience;
     if (a === "all") {
       activeAudiences.clear();
@@ -795,7 +883,8 @@ function validateNotif() {
 
 // Send now
 document.getElementById("notifSendBtn").addEventListener("click", async () => {
-  if (!validateNotif()) return;
+  if (!validateNotif()) { sndError(); return; }
+  sndClick();
   const count = getAudienceCount();
 
   const ok = await confirmDialog(
@@ -828,6 +917,7 @@ document.getElementById("notifSendBtn").addEventListener("click", async () => {
   renderNotifHistory();
   updateNotifStats();
   updatePendingBadge();
+  sndSuccess();
   toast(`✅ ${count.toLocaleString()} foydalanuvchiga yuborildi!`, "ok");
 
   // Simulate notification appearing in main app
@@ -1097,6 +1187,7 @@ function renderUsersTable() {
       <td><span class="ut-time">${formatTimeAgo(u.lastActive)}</span></td>
       <td><span class="ut-dot ${online?"ut-dot--online":"ut-dot--offline"}"></span></td>`;
     tr.addEventListener("click", () => {
+      sndSelect();
       selectedUserId = u.id;
       renderUsersTable();
       renderUserDetail(u);
@@ -1201,11 +1292,12 @@ function renderUserDetail(u) {
 }
 
 // Nav button
-document.getElementById("usersNavBtn").addEventListener("click", () => { showUsersView(); });
-document.getElementById("usersRefreshBtn").addEventListener("click", () => { renderUsersTable(); if(selectedUserId){ const u=getUsersList().find(x=>x.id===selectedUserId); if(u) renderUserDetail(u); } toast("Yangilandi","ok"); });
+document.getElementById("usersNavBtn").addEventListener("click", () => { sndNav(); closeMobileSidebar(); showUsersView(); });
+document.getElementById("usersRefreshBtn").addEventListener("click", () => { sndClick(); renderUsersTable(); if(selectedUserId){ const u=getUsersList().find(x=>x.id===selectedUserId); if(u) renderUserDetail(u); } toast("Yangilandi","ok"); });
 
 // ── Nav button ─────────────────────────────────────────
 document.getElementById("notifNavBtn").addEventListener("click", () => {
+  sndNotify(); closeMobileSidebar();
   showNotifView();
 });
 

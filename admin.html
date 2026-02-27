@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8"/>
   <title>GazNav · Admin</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="theme-color" content="#0a0f1e"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://api-maps.yandex.ru/2.1/?apikey=b0288c55-f3df-4e3f-b9c7-b5de58c0d2e7&lang=ru_RU" type="text/css"/>
@@ -730,6 +733,168 @@
     .ud-setting__val--on { background:rgba(34,216,122,.12); color:var(--accent); }
     .ud-setting__val--off { background:rgba(244,63,94,.08); color:var(--danger); }
     .ud-setting__val--neutral { background:rgba(59,130,246,.1); color:var(--accent2); }
+    /* ── MOBILE ADAPTATION ── */
+    * { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+    @supports(padding: max(0px)) {
+      .topbar { padding-top: max(0px, env(safe-area-inset-top)); }
+    }
+    input, select, textarea { font-size: 16px !important; }
+
+    /* Hamburger */
+    .topbar-hamburger {
+      display: none; background: none; border: 1px solid var(--border);
+      color: var(--text); font-size: 20px; width: 36px; height: 36px;
+      border-radius: 8px; cursor: pointer; flex-shrink: 0;
+      transition: all .15s;
+    }
+    .topbar-hamburger:active { transform: scale(0.9); background: var(--bg3); }
+
+    /* Sidebar backdrop */
+    .sidebar-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 49;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+    }
+    .sidebar-backdrop.open { display: block; }
+
+    /* Mobile tap feedback */
+    @media (hover: none) and (pointer: coarse) {
+      button:active, .sfilter:active, .station-item:active, .fuel-chip:active,
+      .tag-toggle:active, .status-opt:active, .eBtn:active, .topbar-btn:active,
+      .sidebar-add-btn:active, .notif-nav-btn:active, .emoji-btn:active,
+      .notif-type-btn:active, .audience-chip:active, .tag-chip__edit:active,
+      .tag-chip__del:active, .region-row:active, .coord-pick-btn:active {
+        transform: scale(0.95) !important;
+        opacity: 0.85;
+        transition: transform 0.06s !important;
+      }
+      .stat-card:hover, .region-row:hover, .station-item:hover,
+      .hist-card:hover { transform: none; }
+    }
+
+    /* ── PHONE <= 768px ── */
+    @media (max-width: 768px) {
+      :root { --sidebar-w: 280px; --header-h: 52px; }
+      .topbar-hamburger { display: flex; align-items: center; justify-content: center; }
+      .topbar { padding: 0 12px; gap: 8px; height: var(--header-h); flex-wrap: nowrap; }
+      .topbar-brand { font-size: 16px; margin-right: 4px; }
+      .topbar-sep { display: none; }
+      .topbar-section { display: none; }
+      .topbar-stat { font-size: 10px; }
+      .topbar-right { gap: 6px; }
+      .topbar-btn { padding: 5px 8px; font-size: 11px; }
+
+      /* Sidebar slide in */
+      .sidebar {
+        position: fixed; top: 0; left: -100%; z-index: 50;
+        width: var(--sidebar-w); height: 100vh;
+        transition: left .3s ease; box-shadow: none;
+        padding-top: env(safe-area-inset-top, 0);
+      }
+      .sidebar.mobile-open {
+        left: 0;
+        box-shadow: 8px 0 30px rgba(0,0,0,.5);
+      }
+
+      /* Dashboard */
+      .dashboard { padding: 16px 12px; gap: 16px; }
+      .dash-title { font-size: 18px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .stat-card { padding: 12px 14px; }
+      .stat-card__val { font-size: 24px; }
+      .stat-card__icon { font-size: 20px; }
+      .stat-card__label { font-size: 10px; }
+      .dash-section-title { font-size: 11px; }
+
+      /* 2-col sections to 1-col */
+      div[style*="grid-template-columns:1fr 1fr"] {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+      }
+
+      /* Tags */
+      .tags-flex { gap: 6px; }
+      .tag-chip { font-size: 11px; padding: 4px 10px; }
+      .tag-add-row { flex-wrap: wrap; }
+      .tag-add-input { min-width: 0; }
+
+      /* Editor */
+      .editor-topbar { padding: 10px 12px; flex-wrap: wrap; gap: 8px; }
+      .editor-name { font-size: 15px; }
+      .editor-actions { margin-left: 0; width: 100%; display: flex; gap: 6px; }
+      .eBtn { flex: 1; padding: 8px 12px; font-size: 12px; text-align: center; }
+      .editor-body { flex-direction: column; }
+      .editor-form { width: 100%; border-right: none; border-bottom: 1px solid var(--border); padding: 14px 12px; max-height: 50vh; overflow-y: auto; }
+      .editor-map { height: 250px; flex-shrink: 0; }
+      .form-row { flex-direction: column; gap: 10px; }
+      .coord-row { flex-wrap: wrap; }
+
+      /* Notification view */
+      .notif-topbar { padding: 10px 12px; flex-wrap: wrap; gap: 8px; }
+      .notif-topbar-title { font-size: 15px; }
+      .notif-topbar-stats { gap: 8px; }
+      .notif-topbar-stat { font-size: 10px; }
+      .notif-layout { flex-direction: column; }
+      .notif-compose { width: 100%; max-width: 100%; border-right: none; border-bottom: 1px solid var(--border); max-height: 60vh; }
+      .notif-history { padding: 14px 12px; }
+      .notif-type-row { flex-wrap: wrap; gap: 4px; }
+      .notif-type-btn { font-size: 10px; padding: 6px 3px; }
+      .audience-chips { gap: 4px; }
+      .audience-chip { font-size: 10px; padding: 4px 8px; }
+      .emoji-row { gap: 4px; }
+      .emoji-btn { width: 28px; height: 28px; font-size: 14px; }
+      .schedule-row { gap: 6px; }
+
+      /* Users view */
+      .users-topbar { padding: 10px 12px; gap: 8px; }
+      .users-topbar-title { font-size: 15px; }
+      .users-topbar-stats { gap: 8px; }
+      .users-topbar-stat { font-size: 10px; }
+      .users-body { flex-direction: column; }
+      .users-table-side { width: 100%; max-height: 40vh; border-right: none; border-bottom: 1px solid var(--border); }
+      .users-table th, .users-table td { padding: 8px 6px; font-size: 10px; }
+      .users-table th:first-child, .users-table td:first-child { display: none; }
+      .users-detail-side { padding: 12px; }
+      .ud-header { flex-wrap: wrap; gap: 10px; }
+      .ud-name { font-size: 16px; }
+      .ud-grid { grid-template-columns: 1fr; gap: 10px; }
+      .ud-card { padding: 12px; }
+      .ud-settings-grid { grid-template-columns: 1fr; }
+
+      /* Confirm modal */
+      .confirm-box { width: 90vw; padding: 20px; }
+
+      /* Toast */
+      .a-toast-wrap { bottom: 12px; right: 8px; left: 8px; }
+
+      /* Bosh sahifa button hide on mobile (already in topbar) */
+      a.topbar-btn[href="index.html"] { display: none; }
+    }
+
+    /* ── VERY SMALL PHONES <= 420px ── */
+    @media (max-width: 420px) {
+      .topbar { padding: 0 8px; gap: 6px; }
+      .topbar-brand { font-size: 14px; }
+      .topbar-stat { display: none; }
+      .stats-grid { gap: 6px; }
+      .stat-card__val { font-size: 20px; }
+      .auth-card { width: 92vw; padding: 28px 20px; }
+      .auth-title { font-size: 20px; }
+      .editor-form { padding: 10px 8px; }
+      .sidebar { width: 85vw; }
+      .tg-preview-wrap { padding: 10px; }
+    }
+
+    /* ── LANDSCAPE ── */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .topbar { height: 42px; }
+      .sidebar { padding-top: 0; }
+      .dashboard { padding: 10px; }
+      .auth-card { padding: 20px 24px; }
+      .auth-logo { font-size: 32px; margin-bottom: 8px; }
+    }
+
+    body { overscroll-behavior-y: contain; }
   </style>
 </head>
 <body>
@@ -737,8 +902,8 @@
 <!-- AUTH -->
 <div id="authScreen">
   <div class="auth-card">
-    <div class="auth-logo">⛽</div>
-    <div class="auth-title">Gaz<span style="color:var(--accent)">Nav</span></div>
+    <a href="index.html" style="text-decoration:none;cursor:pointer;"><div class="auth-logo">⛽</div></a>
+    <a href="index.html" style="text-decoration:none;cursor:pointer;"><div class="auth-title">Gaz<span style="color:var(--accent)">Nav</span></div></a>
     <div class="auth-sub">Admin Panel · Kirish</div>
     <input id="authInput" class="auth-input" type="password" placeholder="Parol" autocomplete="current-password"/>
     <button id="authBtn" class="auth-btn">Kirish →</button>
@@ -750,7 +915,8 @@
 <!-- APP -->
 <div id="app">
   <header class="topbar">
-    <span class="topbar-brand">⛽ Gaz<span>Nav</span></span>
+    <button class="topbar-hamburger" id="sidebarToggle" type="button">☰</button>
+    <a href="index.html" class="topbar-brand" id="topbarBrand" style="text-decoration:none;cursor:pointer;">⛽ Gaz<span>Nav</span></a>
     <span class="topbar-sep"></span>
     <span class="topbar-section" id="topbarSection">Dashboard</span>
     <div class="topbar-right">
@@ -763,7 +929,8 @@
 
   <div class="app-body">
     <!-- SIDEBAR -->
-    <aside class="sidebar">
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <aside class="sidebar" id="sidebarPanel">
       <div class="sidebar-search">
         <input id="sidebarSearch" type="text" placeholder="🔍  Zapravka qidirish..."/>
       </div>

@@ -412,7 +412,7 @@ function renderRecent() {
 }
 
 // ── ADMIN PAROL ─────────────────────────────
-const ADMIN_PASSWORD = "20072007";
+const ADMIN_PASSWORD = "****";
 if (adminPanelBtn) {
   adminPanelBtn.addEventListener("click",()=>{
     playModalOpenSound();
