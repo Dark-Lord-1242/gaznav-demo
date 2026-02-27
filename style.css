@@ -3105,3 +3105,332 @@ body.theme-light .cab-reset-btn {
   from { opacity: 0; transform: translateX(12px); }
   to   { opacity: 1; transform: translateX(0); }
 }
+
+/* ═══════════════════════════════════════
+   MOBILE ADAPTATION — iOS / Android
+═══════════════════════════════════════ */
+
+/* Safe area for notch / dynamic island */
+@supports(padding: max(0px)) {
+  .navbar { padding-top: max(0px, env(safe-area-inset-top)); }
+  .order-panel { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .cabinet__content { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+}
+
+/* Prevent 300ms tap delay on mobile */
+* { touch-action: manipulation; }
+
+/* Global mobile touch feedback */
+button, .chip, .panel-filter-chip, .nav-ctrl-btn, .nav-region-btn,
+.order-item, .station-card, .cabinet__fav-item, .cab-recent-item,
+.cab-setting-item, .map-zoom-btn, .modal-nav-btn, .cab-section-action,
+.cab-profile-card__save, .cab-lang-switch, .cab-reset-btn,
+.cabinet__admin-link, .card-fav-btn, .order-item__fav {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  cursor: pointer;
+}
+
+/* Active states for mobile (tap feedback) */
+@media (hover: none) and (pointer: coarse) {
+  button:active, .chip:active, .panel-filter-chip:active,
+  .nav-ctrl-btn:active, .nav-region-btn:active,
+  .map-zoom-btn:active, .modal-nav-btn:active,
+  .cab-section-action:active, .cab-profile-card__save:active,
+  .cab-lang-switch:active, .cab-reset-btn:active,
+  .cabinet__admin-link:active {
+    transform: scale(0.95) !important;
+    opacity: 0.85;
+    transition: transform 0.08s, opacity 0.08s !important;
+  }
+  .station-card:active, .order-item:active, .cabinet__fav-item:active,
+  .cab-recent-item:active, .cab-setting-item:active {
+    transform: scale(0.98) !important;
+    opacity: 0.9;
+    transition: transform 0.08s !important;
+  }
+  .card-fav-btn:active, .order-item__fav:active {
+    transform: scale(1.4) !important;
+  }
+  /* Remove hover effects on touch */
+  .map-zoom-btn:hover,
+  .panel-filter-chip:hover,
+  .station-card:hover,
+  .order-item:hover,
+  .cab-setting-item:hover,
+  .cabinet__fav-item:hover,
+  .cab-recent-item:hover,
+  .cabinet__car-item:hover {
+    transform: none;
+  }
+}
+
+/* ── PHONES: 480px ── */
+@media (max-width: 480px) {
+  /* Navbar compact */
+  .navbar__inner {
+    padding: 0 10px;
+    gap: 8px;
+    height: 54px;
+  }
+  .brand-logo { width: 32px; height: 32px; }
+  .brand-logo__inner { font-size: 16px; }
+  .brand-text-main { font-size: 16px; }
+  .brand-sub { display: none; }
+  .top-search { display: none; }
+  .nav-region-btn__text { display: none; }
+  .nav-region-btn__chevron { display: none; }
+  .nav-region-btn { padding: 6px; border-radius: 8px; }
+  .nav-ctrl-btn { width: 34px; height: 34px; font-size: 14px; }
+  .nav-divider { height: 20px; }
+  .nav-controls { gap: 4px; }
+
+  /* Main page */
+  .headline-section { margin-top: 10px; }
+  .headline-title { font-size: 20px; }
+  .headline-sub { font-size: 11px; }
+
+  /* Map cards layout */
+  .map-cards-layout {
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 0 8px;
+  }
+  .map-side { flex: none; width: 100%; }
+  .map-container { border-radius: 12px; }
+  #mainMap { height: 220px; }
+  .cards-side {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    gap: 8px;
+  }
+  .cards-side__header { padding: 0 4px; }
+  .cards-side .stations-row {
+    flex-direction: row;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    gap: 8px;
+  }
+  .cards-side .station-card {
+    min-width: 240px;
+    max-width: 280px;
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+
+  /* Distance panel */
+  .distance-panel { padding: 8px 10px; border-radius: 10px; }
+  .distance-panel__icon { font-size: 18px; }
+  .distance-panel__label { font-size: 9px; }
+  .distance-panel__value { font-size: 12px; }
+  .distance-panel__badge { font-size: 12px; padding: 3px 8px; }
+
+  /* Zoom controls */
+  .map-zoom-controls {
+    position: static;
+    justify-content: center;
+    margin-top: 6px;
+  }
+  .map-zoom-btn { width: 34px; height: 34px; font-size: 16px; }
+
+  /* Order panel */
+  .order-panel {
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    padding: 6px 10px 10px;
+  }
+  .order-panel__header { padding: 4px 0 6px; }
+  .order-panel__title { font-size: 15px; }
+  .order-panel__subtitle { font-size: 11px; }
+  .panel-filters__scroll { padding: 2px 8px 6px; gap: 5px; }
+  .panel-filter-chip { padding: 5px 10px; font-size: 11px; }
+  .pfc-icon { font-size: 12px; }
+
+  .order-item { padding: 10px; gap: 8px; border-radius: 12px; }
+  .order-item__icon { width: 36px; height: 36px; border-radius: 10px; }
+  .order-item__icon span { font-size: 16px; }
+  .order-item__name { font-size: 13px; }
+  .order-item__distance { font-size: 10px; }
+  .order-pill { font-size: 10px; padding: 2px 6px; }
+
+  /* Station card */
+  .station-card {
+    padding: 12px;
+    border-radius: 14px;
+  }
+  .station-title { font-size: 14px; }
+  .type-pill { font-size: 10px; padding: 2px 6px; }
+  .card-dist { font-size: 10px; }
+  .card-time { font-size: 10px; }
+  .status-dot { font-size: 11px; }
+
+  /* Cabinet */
+  .cabinet__content {
+    width: 100vw;
+    max-width: 100vw;
+  }
+  .cabinet__header { padding: 14px 14px 10px; }
+  .cab-avatar { width: 40px; height: 40px; }
+  .cab-avatar__icon { font-size: 18px; }
+  .cab-profile-name { font-size: 14px; }
+  .cab-profile-sub { font-size: 10px; }
+  .cabinet__section { margin-bottom: 14px; padding-bottom: 10px; }
+  .cab-stats-row { gap: 6px; }
+  .cab-stat-card { padding: 10px 6px; border-radius: 12px; }
+  .cab-stat-card__value { font-size: 18px; }
+  .cab-stat-card__label { font-size: 9px; }
+  .cab-profile-card { padding: 10px; border-radius: 12px; }
+  .cab-profile-card__input { padding: 7px 10px; font-size: 14px; }
+  .cab-setting-item { padding: 8px 10px; }
+  .cab-setting-item__info { font-size: 12px; gap: 8px; }
+  .cabinet__admin-link { font-size: 12px; padding: 10px 14px; }
+  .cab-reset-btn { font-size: 12px; padding: 9px 10px; }
+
+  /* Modal */
+  .modal__content {
+    width: 95vw;
+    max-width: 95vw;
+    max-height: 90vh;
+    border-radius: 16px;
+    margin: auto 2.5vw;
+  }
+  .modal-station__header { gap: 10px; }
+  .modal-station__icon { font-size: 28px; }
+  .modal-station__title { font-size: 16px; }
+  .modal-station__row { padding: 6px 0; }
+  .modal-station__label { font-size: 11px; }
+  .modal-station__value { font-size: 12px; }
+  .modal-nav-btn { padding: 10px; font-size: 13px; border-radius: 10px; }
+  .modal-station__map { height: 160px; border-radius: 10px; }
+
+  /* Region dropdown */
+  .region-dropdown__panel {
+    position: fixed;
+    top: 56px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    border-radius: 14px;
+    z-index: 100;
+  }
+
+  /* Toast */
+  .toast-container {
+    top: auto;
+    bottom: 12px;
+    right: 8px;
+    left: 8px;
+  }
+  .toast {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 12px;
+  }
+
+  /* Admin pass modal */
+  .admin-pass-modal__icon { font-size: 32px; }
+  .admin-pass-modal__title { font-size: 17px; }
+}
+
+/* ── SMALL PHONES: 360px ── */
+@media (max-width: 360px) {
+  .navbar__inner { padding: 0 6px; gap: 6px; height: 48px; }
+  .brand-logo { width: 28px; height: 28px; }
+  .brand-text-main { font-size: 14px; }
+  .nav-ctrl-btn { width: 30px; height: 30px; font-size: 12px; }
+  .cards-side .station-card { min-width: 200px; }
+  #mainMap { height: 180px; }
+  .headline-title { font-size: 18px; }
+  .order-panel__title { font-size: 14px; }
+  .cab-stats-row { grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .cab-stat-card { padding: 8px 4px; }
+  .cab-stat-card__value { font-size: 16px; }
+}
+
+/* ── TABLETS: 768-1024px ── */
+@media (min-width: 481px) and (max-width: 768px) {
+  .map-cards-layout {
+    flex-direction: column;
+    padding: 0 12px;
+    gap: 12px;
+  }
+  #mainMap { height: 280px; }
+  .cards-side .stations-row {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 10px;
+  }
+  .cards-side .station-card {
+    min-width: 260px;
+    flex-shrink: 0;
+  }
+  .cabinet__content {
+    max-width: 380px;
+  }
+}
+
+/* ── LANDSCAPE PHONES ── */
+@media (max-height: 500px) and (orientation: landscape) {
+  .navbar__inner { height: 44px; }
+  .headline-section { margin-top: 4px; }
+  .headline-title { font-size: 18px; }
+  .headline-sub { display: none; }
+  .map-cards-layout { flex-direction: row; margin-top: 4px; }
+  .map-side { flex: 1; }
+  #mainMap { height: 200px; }
+  .cards-side { flex: 1; max-height: calc(100vh - 60px); overflow-y: auto; }
+  .cards-side .stations-row { flex-direction: column; }
+  .cards-side .station-card { min-width: unset; }
+  .order-panel { max-height: 60vh; }
+}
+
+/* ── PULL-TO-REFRESH prevention (iOS) ── */
+body {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── iOS input zoom prevention ── */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  input[type="search"],
+  select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ── Smooth scrolling for lists on mobile ── */
+.panel-filters__scroll,
+.cards-side .stations-row,
+.order-panel__list,
+.cabinet__content {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* ── Hide scrollbars on mobile but keep scrollable ── */
+@media (max-width: 768px) {
+  .cards-side .stations-row::-webkit-scrollbar,
+  .order-panel__list::-webkit-scrollbar {
+    display: none;
+  }
+  .cards-side .stations-row,
+  .order-panel__list {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+}
+
+/* ── PWA standalone mode adjustments ── */
+@media all and (display-mode: standalone) {
+  .navbar { padding-top: env(safe-area-inset-top, 0px); }
+  .order-panel { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+}

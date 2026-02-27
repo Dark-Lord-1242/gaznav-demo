@@ -207,28 +207,63 @@ function showToast(msg, type="") {
   setTimeout(() => { el.style.opacity="0"; el.style.transform="translateY(-6px)"; setTimeout(()=>el.remove(),200); }, 3200);
 }
 
-// ── AUDIO ───────────────────────────────────
-function _playTones(notes,vol) {
+// ── AUDIO — Полная звуковая система для всех кнопок ──
+let _audioCtx = null;
+function _getAudioCtx() {
   try {
-    if(state.settings && state.settings.sound === false) return;
-    const Ctx=window.AudioContext||window.webkitAudioContext; if(!Ctx) return;
-    const ctx=new Ctx();
-    notes.forEach(([freq,delay,dur])=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.type="sine"; o.frequency.value=freq; g.gain.value=0.0001;
-      o.connect(g); g.connect(ctx.destination);
-      const t=ctx.currentTime+delay;
-      o.start(t); g.gain.setValueAtTime(0.0001,t);
-      g.gain.exponentialRampToValueAtTime(vol,t+.015);
-      g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-      o.stop(t+dur+.01);
-    });
-    setTimeout(()=>ctx.close(),1500);
-  } catch(_){}
+    if (!_audioCtx || _audioCtx.state === 'closed') {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      _audioCtx = new Ctx();
+    }
+    if (_audioCtx.state === 'suspended') _audioCtx.resume();
+    return _audioCtx;
+  } catch(_) { return null; }
 }
-function playFilterSound() { _playTones([[660,0,.1]],.07); }
-function playSelectSound() { _playTones([[880,0,.2],[1109,.15,.2]],.13); }
-function playOpenSound()   { _playTones([[659,0,.25],[783,.12,.25],[987,.24,.35]],.16); }
+function _playTones(notes, vol, wave) {
+  try {
+    if (state.settings && state.settings.sound === false) return;
+    const ctx = _getAudioCtx(); if (!ctx) return;
+    notes.forEach(([freq, delay, dur]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = wave || "sine"; o.frequency.value = freq; g.gain.value = 0.0001;
+      o.connect(g); g.connect(ctx.destination);
+      const t = ctx.currentTime + delay;
+      o.start(t); g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + .015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.stop(t + dur + .01);
+    });
+  } catch(_) {}
+}
+// Звуки для разных действий
+function playClickSound()    { _playTones([[800, 0, .06]], .05, "sine"); }
+function playFilterSound()   { _playTones([[660, 0, .1], [880, .06, .08]], .06, "sine"); }
+function playSelectSound()   { _playTones([[880, 0, .15], [1109, .1, .18]], .1, "sine"); }
+function playOpenSound()     { _playTones([[659, 0, .2], [783, .1, .2], [987, .2, .3]], .13, "sine"); }
+function playCloseSound()    { _playTones([[600, 0, .08], [400, .06, .12]], .06, "triangle"); }
+function playToggleOnSound() { _playTones([[523, 0, .08], [784, .06, .1]], .07, "sine"); }
+function playToggleOffSound(){ _playTones([[784, 0, .06], [523, .05, .08]], .06, "sine"); }
+function playFavAddSound()   { _playTones([[659, 0, .1], [880, .08, .12], [1047, .16, .18]], .09, "sine"); }
+function playFavRemoveSound(){ _playTones([[880, 0, .08], [659, .06, .1]], .06, "triangle"); }
+function playNavSound()      { _playTones([[523, 0, .1], [659, .08, .12], [784, .16, .12], [1047, .24, .2]], .1, "sine"); }
+function playErrorSound()    { _playTones([[350, 0, .12], [280, .1, .18]], .08, "square"); }
+function playSuccessSound()  { _playTones([[523, 0, .1], [659, .08, .1], [784, .16, .15]], .1, "sine"); }
+function playSearchSound()   { _playTones([[1200, 0, .05], [1400, .04, .06]], .04, "sine"); }
+function playZoomSound()     { _playTones([[1000, 0, .04]], .03, "sine"); }
+function playPanelSound()    { _playTones([[440, 0, .08], [550, .06, .1]], .05, "triangle"); }
+function playModalOpenSound(){ _playTones([[400, 0, .08], [530, .06, .1], [660, .12, .15]], .08, "sine"); }
+function playModalCloseSound(){ _playTones([[660, 0, .06], [440, .05, .1]], .05, "sine"); }
+function playNotifySound()   { _playTones([[880, 0, .1], [1100, .08, .12], [880, .18, .08]], .09, "sine"); }
+function playResetSound()    { _playTones([[600, 0, .1], [500, .08, .1], [400, .16, .1], [300, .24, .15]], .07, "triangle"); }
+function playCarAddSound()   { _playTones([[523, 0, .08], [659, .06, .08], [784, .12, .12]], .08, "sine"); }
+function playProfileSaveSound(){ _playTones([[659, 0, .1], [784, .08, .1], [1047, .16, .2]], .1, "sine"); }
+// iOS AudioContext unlock on first touch
+document.addEventListener("touchstart", function _iosUnlock() {
+  const ctx = _getAudioCtx();
+  if (ctx && ctx.state === "suspended") ctx.resume();
+  document.removeEventListener("touchstart", _iosUnlock);
+}, { passive: true, once: true });
 
 // ── I18N & THEME ────────────────────────────
 function applyI18n() {
@@ -241,13 +276,13 @@ function applyTheme() {
   if (state.theme==="light") { body.classList.add("theme-light"); themeIcon.textContent="🌙"; }
   else { body.classList.remove("theme-light"); themeIcon.textContent="☀"; }
 }
-langToggle.addEventListener("click", ()=>{ state.language=state.language==="uz"?"ru":"uz"; saveState(); applyI18n(); renderRegionDropdown(); renderAll(); });
-themeToggle.addEventListener("click", ()=>{ state.theme=state.theme==="dark"?"light":"dark"; saveState(); applyTheme(); });
+langToggle.addEventListener("click", ()=>{ playClickSound(); state.language=state.language==="uz"?"ru":"uz"; saveState(); applyI18n(); renderRegionDropdown(); renderAll(); });
+themeToggle.addEventListener("click", ()=>{ state.theme=state.theme==="dark"?"light":"dark"; playToggleOnSound(); saveState(); applyTheme(); });
 
 // ── KABINET ─────────────────────────────────
-cabinetToggle.addEventListener("click",  ()=>{ cabinet.classList.add("cabinet--open"); syncCabinetUI(); });
-cabinetClose.addEventListener("click",   ()=>cabinet.classList.remove("cabinet--open"));
-cabinetBackdrop.addEventListener("click",()=>cabinet.classList.remove("cabinet--open"));
+cabinetToggle.addEventListener("click",  ()=>{ playPanelSound(); cabinet.classList.add("cabinet--open"); syncCabinetUI(); });
+cabinetClose.addEventListener("click",   ()=>{ playCloseSound(); cabinet.classList.remove("cabinet--open"); });
+cabinetBackdrop.addEventListener("click",()=>{ playCloseSound(); cabinet.classList.remove("cabinet--open"); });
 
 // Kabinet UI sinxronlash
 function syncCabinetUI() {
@@ -280,12 +315,14 @@ if(cabProfileSave) cabProfileSave.addEventListener("click", ()=>{
   state.profile.phone = (cabPhoneInput?.value||"").trim();
   saveState();
   syncCabinetUI();
+  playProfileSaveSound();
   showToast(I18N[state.language].profileSaved, "ok");
 });
 
 // Settings: Theme switch
 if(cabThemeSwitch) cabThemeSwitch.addEventListener("change", ()=>{
   state.theme = cabThemeSwitch.checked ? "dark" : "light";
+  playToggleOnSound();
   saveState(); applyTheme();
 });
 
@@ -297,10 +334,12 @@ if(cabNotifySwitch) cabNotifySwitch.addEventListener("change", async()=>{
       const p = Notification.permission==="granted" ? "granted" : await Notification.requestPermission();
       state.settings.notifications = p==="granted";
       cabNotifySwitch.checked = p==="granted";
+      if(p==="granted") playNotifySound();
       showToast(p==="granted"?"Bildirishnomalar yoqildi ✓":"Ruxsat berilmadi");
     }
   } else {
     state.settings.notifications = false;
+    playToggleOffSound();
   }
   saveState();
 });
@@ -316,12 +355,14 @@ if(cabSoundSwitch) cabSoundSwitch.addEventListener("change", ()=>{
 // Settings: Language
 if(cabLangSwitch) cabLangSwitch.addEventListener("click", ()=>{
   state.language = state.language==="uz" ? "ru" : "uz";
+  playClickSound();
   saveState(); applyI18n(); renderRegionDropdown(); renderAll(); syncCabinetUI();
 });
 
 // Clear favorites
 if(clearFavsBtn) clearFavsBtn.addEventListener("click", ()=>{
   state.favorites = [];
+  playResetSound();
   saveState(); renderAll(); syncCabinetUI();
   showToast(state.language==="ru"?"Избранные очищены":"Sevimlilar tozalandi","ok");
 });
@@ -329,6 +370,7 @@ if(clearFavsBtn) clearFavsBtn.addEventListener("click", ()=>{
 // Reset data
 if(cabResetBtn) cabResetBtn.addEventListener("click", ()=>{
   if(!confirm(I18N[state.language].resetConfirm)) return;
+  playResetSound();
   localStorage.removeItem(LS_KEY);
   localStorage.removeItem("gaznav-geo-cache");
   state = structuredClone(DEFAULT_STATE);
@@ -373,6 +415,7 @@ function renderRecent() {
 const ADMIN_PASSWORD = "20072007";
 if (adminPanelBtn) {
   adminPanelBtn.addEventListener("click",()=>{
+    playModalOpenSound();
     adminPassModal.classList.add("modal--open");
     adminPassInput.value=""; adminPassError.textContent="";
     setTimeout(()=>adminPassInput.focus(),100);
@@ -380,18 +423,20 @@ if (adminPanelBtn) {
 }
 function checkAdminPass() {
   if (adminPassInput.value===ADMIN_PASSWORD) {
+    playSuccessSound();
     sessionStorage.setItem("gaznav-admin-auth","ok");
     adminPassModal.classList.remove("modal--open");
     window.location.href="admin.html";
   } else {
+    playErrorSound();
     adminPassError.textContent = state.language==="ru"?"Неверный пароль!":"Parol noto'g'ri!";
     adminPassInput.value=""; adminPassInput.focus();
   }
 }
 if (adminPassSubmit) adminPassSubmit.addEventListener("click", checkAdminPass);
 if (adminPassInput)  adminPassInput.addEventListener("keydown", e=>{ if(e.key==="Enter") checkAdminPass(); });
-if (adminPassCancel) adminPassCancel.addEventListener("click",  ()=>adminPassModal.classList.remove("modal--open"));
-if (adminPassBackdrop) adminPassBackdrop.addEventListener("click",()=>adminPassModal.classList.remove("modal--open"));
+if (adminPassCancel) adminPassCancel.addEventListener("click",  ()=>{ playCloseSound(); adminPassModal.classList.remove("modal--open"); });
+if (adminPassBackdrop) adminPassBackdrop.addEventListener("click",()=>{ playCloseSound(); adminPassModal.classList.remove("modal--open"); });
 
 // ── FILTERS — RADIO ─────────────────────────
 function syncFilterUI() {
@@ -481,7 +526,9 @@ function getFilteredStations() {
 
 // ── FAVORITES ───────────────────────────────
 function toggleFavorite(id) {
-  const i=state.favorites.indexOf(id); i===-1?state.favorites.push(id):state.favorites.splice(i,1);
+  const i=state.favorites.indexOf(id);
+  if(i===-1){ state.favorites.push(id); playFavAddSound(); }
+  else { state.favorites.splice(i,1); playFavRemoveSound(); }
   saveState(); renderAll();
 }
 function renderFavorites() {
@@ -585,6 +632,7 @@ let _lastDistList = [];
 
 function openStationModal(id) {
   const st=state.stations.find(s=>s.id===Number(id)); if(!st) return;
+  playModalOpenSound();
   addToRecent(st.id);
   const loc=`${st.region||""}${st.region?" · ":""}${st.district||""}`.trim();
   const coords=typeof st.lat==="number"?`${st.lat.toFixed(5)}, ${st.lng.toFixed(5)}`:"-";
@@ -623,9 +671,9 @@ function openStationModal(id) {
     },100);
   }
 }
-modalBackdrop.addEventListener("click",()=>setModalOpen(false));
-modalClose.addEventListener("click",()=>setModalOpen(false));
-document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ setModalOpen(false); if(adminPassModal) adminPassModal.classList.remove("modal--open"); } });
+modalBackdrop.addEventListener("click",()=>{ playModalCloseSound(); setModalOpen(false); });
+modalClose.addEventListener("click",()=>{ playModalCloseSound(); setModalOpen(false); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ playCloseSound(); setModalOpen(false); if(adminPassModal) adminPassModal.classList.remove("modal--open"); } });
 
 // ── CARS ────────────────────────────────────
 function renderCars() {
@@ -640,9 +688,11 @@ function renderCars() {
   });
 }
 if(addCarBtn) addCarBtn.addEventListener("click",()=>{
+  playClickSound();
   const name=prompt(I18N[state.language].addCarPrompt); if(!name) return;
   const quality=prompt(I18N[state.language].addCarQuality,"Comfort")||"Comfort";
   state.cars=state.cars||[]; state.cars.push({id:Date.now(),name:name.trim(),quality:quality.trim()});
+  playCarAddSound();
   saveState(); renderCars(); syncCabinetUI();
 });
 
@@ -685,11 +735,12 @@ function initMainMap() {
   syncZoomLevel(); updateMapMarkers();
 }
 
-if(mapZoomIn)  mapZoomIn.addEventListener("click",()=>{ if(mainMap) mainMap.setZoom(mainMap.getZoom()+1,{smooth:true}); });
-if(mapZoomOut) mapZoomOut.addEventListener("click",()=>{ if(mainMap) mainMap.setZoom(mainMap.getZoom()-1,{smooth:true}); });
+if(mapZoomIn)  mapZoomIn.addEventListener("click",()=>{ playZoomSound(); if(mainMap) mainMap.setZoom(mainMap.getZoom()+1,{smooth:true}); });
+if(mapZoomOut) mapZoomOut.addEventListener("click",()=>{ playZoomSound(); if(mainMap) mainMap.setZoom(mainMap.getZoom()-1,{smooth:true}); });
 
 // ── NOTIFICATIONS ───────────────────────────
 if(notifyBtn) notifyBtn.addEventListener("click",async()=>{
+  playNotifySound();
   if(!("Notification"in window)){ showToast("Brauzer qo'llab-quvvatlamaydi"); return; }
   const p=Notification.permission==="granted"?"granted":await Notification.requestPermission();
   showToast(p==="granted"?"Bildirishnomalar yoqildi ✓":"Ruxsat berilmadi");
@@ -770,8 +821,8 @@ function setPanelOffset(px,anim=true){
 function openPanel()    { setPanelOffset(0,true); toggleBtn.textContent="▾"; }
 function collapsePanel(){ setPanelOffset(collapsedOffset,true); toggleBtn.textContent="▴"; }
 function hidePanel()    { setPanelOffset(hiddenOffset,true); toggleBtn.textContent="▴"; }
-toggleBtn.addEventListener("click",()=>currentOffset===0?collapsePanel():openPanel());
-hideBtn.addEventListener("click",hidePanel);
+toggleBtn.addEventListener("click",()=>{ playPanelSound(); currentOffset===0?collapsePanel():openPanel(); });
+hideBtn.addEventListener("click",()=>{ playCloseSound(); hidePanel(); });
 function onDragStart(y){ isDragging=true; startY=y; startOffset=currentOffset; panel.classList.add("order-panel--dragging"); }
 function onDragMove(y) { if(isDragging) setPanelOffset(startOffset+y-startY,false); }
 function onDragEnd()   {
@@ -801,7 +852,7 @@ function renderAll(withDist) {
 let searchTimer;
 searchInput.addEventListener("input",()=>{
   clearTimeout(searchTimer);
-  searchTimer=setTimeout(()=>{ renderAll(); updateMapMarkers(); },180);
+  searchTimer=setTimeout(()=>{ playSearchSound(); renderAll(); updateMapMarkers(); },180);
 });
 
 // Keyboard shortcut: "/" to focus search
@@ -813,16 +864,18 @@ document.addEventListener("keydown",e=>{
 });
 
 if(regionButton&&regionPanel){
-  regionButton.addEventListener("click",e=>{ e.stopPropagation(); regionPanel.classList.toggle("region-dropdown__panel--open"); });
+  regionButton.addEventListener("click",e=>{ e.stopPropagation(); playClickSound(); regionPanel.classList.toggle("region-dropdown__panel--open"); });
   regionPanel.addEventListener("click",e=>e.stopPropagation());
   document.addEventListener("click",()=>regionPanel.classList.remove("region-dropdown__panel--open"));
 }
 if(regionSelect) regionSelect.addEventListener("change",()=>{
+  playClickSound();
   state.selectedRegion=regionSelect.value||""; state.selectedDistrict="";
   const d=getDistrictsForRegion(state.selectedRegion); if(d.length) state.selectedDistrict=d[0];
   saveState(); renderRegionDropdown(); renderAll(); updateMapMarkers();
 });
 if(districtSelect) districtSelect.addEventListener("change",()=>{
+  playClickSound();
   state.selectedDistrict=districtSelect.value||""; saveState(); renderRegionDropdown(); renderAll(); updateMapMarkers();
 });
 
